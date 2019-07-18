@@ -1,0 +1,61 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Commander",
+        "repositoryURL": "https://github.com/kylef/Commander.git",
+        "state": {
+          "branch": null,
+          "revision": "dc97e80a1cf5df6c5768528f039c65ad8c564712",
+          "version": "0.9.0"
+        }
+      },
+      {
+        "package": "CommandLineKit",
+        "repositoryURL": "https://github.com/pvieito/CommandLineKit.git",
+        "state": {
+          "branch": "master",
+          "revision": "5ac5756f066b0a2baa8240c533c07d124b2e7e89",
+          "version": null
+        }
+      },
+      {
+        "package": "DL4S",
+        "repositoryURL": "https://github.com/palle-k/DL4S.git",
+        "state": {
+          "branch": "develop",
+          "revision": "50d831470725456d0ce87136b6ab14bac997d7fc",
+          "version": null
+        }
+      },
+      {
+        "package": "LoggerKit",
+        "repositoryURL": "https://github.com/pvieito/LoggerKit.git",
+        "state": {
+          "branch": "master",
+          "revision": "04b90d53e38f3f637ab54c980dd148569ffe723f",
+          "version": null
+        }
+      },
+      {
+        "package": "PythonTool",
+        "repositoryURL": "https://github.com/pvieito/PythonKit.git",
+        "state": {
+          "branch": "master",
+          "revision": "0b2ffa2db8d249112cc833a6e13faac004ce5835",
+          "version": null
+        }
+      },
+      {
+        "package": "Spectre",
+        "repositoryURL": "https://github.com/kylef/Spectre.git",
+        "state": {
+          "branch": null,
+          "revision": "f14ff47f45642aa5703900980b014c2e9394b6e5",
+          "version": "0.9.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
