@@ -175,7 +175,7 @@ let group = Group { g in
                     decoded = combined.forward(Tensor<Int32, CPU>(engIdxs))
                 }
                 
-                combinedLoss += Helper<Float, CPU>().decodingLoss(forExpectedSequence: Array(gerIdxs[1...]), actualSequence: decoded)
+                combinedLoss += Helper<Float, CPU>().decodingLoss(forExpectedSequence: Array(gerIdxs.dropFirst()), actualSequence: decoded)
                 
                 src = english.formattedSentence(from: engIdxs)
                 seq = german.formattedSentence(from: Helper<Float, CPU>().sequence(from: decoded))

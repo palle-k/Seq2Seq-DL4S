@@ -156,19 +156,24 @@ class AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: Layer {
     }
     
     func translate(_ text: [Int32], from sourceLanguage: Language, to destinationLanguage: Language, beamCount: Int) -> [([Int32], Tensor<Element, Device>)] {
-        let encoded = encoder.forward(Tensor<Input, Device>(text))
-        let initialState = transformHiddenState(encoded[-1])
+//        let encoded = encoder(Tensor<Input, Device>(text))
+//        let initialState = transformHiddenState(encoded[-1])
+//
+//        let states = self.beamDecode(
+//            fromInitialState: initialState,
+//            encoderStates: encoded,
+//            initialToken: Int32(Language.startOfSentence),
+//            endToken: Int32(Language.endOfSentence),
+//            maxLength: text.count * 2,
+//            beamCount: beamCount
+//        )
+//        return states.map {state in (state.indices, stack(state.attentions))}
         
-        let states = self.beamDecode(
-            fromInitialState: initialState,
-            encoderStates: encoded,
-            initialToken: Int32(Language.startOfSentence),
-            endToken: Int32(Language.endOfSentence),
-            maxLength: text.count * 2,
-            beamCount: beamCount
-        )
+        let (decoded, attn) = forwardWithScores([
+            Tensor<Input, Device>(text)
+        ])
         
-        return states.map {state in (state.indices, stack(state.attentions))}
+        return [(Helper<Element, Device>().sequence(from: decoded), attn)]
     }
     
     func forwardWithScores(_ inputs: [Tensor<Int32, Device>]) -> (decoded: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>) {

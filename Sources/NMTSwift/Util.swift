@@ -117,7 +117,7 @@ enum Plot {
         let color_axis = ax.matshow(arr)
         fig.colorbar(color_axis)
         ax.set_xticklabels([""] + source, rotation: 90)
-        ax.set_yticklabels(destination)
+        ax.set_yticklabels([""] + destination)
         
         ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
         ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
