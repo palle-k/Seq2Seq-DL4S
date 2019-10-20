@@ -60,7 +60,7 @@ To build the translation app, navigate into the `static` folder and run `npm run
 Then navigate back to the repository root and run the server using the following command:
 
 ```bash
-swift run -c release NMTSwift eval eng-ger.txt models/encoder.json models/decoder.json
+swift run -c release NMTSwift serve ./runs/vocab_eng.txt ./runs/vocab_ger.txt ./runs/model.json --emb_size 128 --latent_size 256
 ```
 
 ### Evaluate  model
@@ -68,7 +68,7 @@ swift run -c release NMTSwift eval eng-ger.txt models/encoder.json models/decode
 Evaluation requires Python 3, numpy and matplotlib to be installed to visualize the attention distribution.
 
 ```bash
-swift run -c release NMTSwift eval eng-ger.txt models/encoder.json models/decoder.json
+swift run -c release NMTSwift eval ./runs/vocab_eng.txt ./runs/vocab_ger.txt ./runs/model.json --emb_size 128 --latent_size 256
 ```
 
 Running this command will start a interactive translation session.
