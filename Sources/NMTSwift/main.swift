@@ -35,6 +35,7 @@ let engReplacements = [
     "it's": "it is",
     "we're": "we are",
     "they're": "they are",
+    "you've": "you have",
     "isn't": "is not",
     "aren't": "are not",
     "hasn't": "has not",
@@ -72,6 +73,35 @@ let gerReplacements = [
     "sich's": "sich es",
     "hol's": "hol es"
 ]
+
+func makeModel(embeddingSize embSize: Int, latentSize: Int, sourceWords: [String], destinationWords: [String], srcEmbeddings: String?, dstEmbeddings: String?) -> AttentionSeq2Seq<Float, CPU> {
+    let encoder = BidirectionalEncoder<Float, CPU>(
+        inputSize: sourceWords.count,
+        embeddingSize: embSize,
+        hiddenSize: latentSize,
+        embeddingsFile: srcEmbeddings.map(URL.init(fileURLWithPath:)),
+        words: sourceWords
+    )
+    let decoder = AttentionDecoder<Float, CPU>(
+        inputSize: destinationWords.count,
+        embeddingSize: embSize,
+        hiddenSize: latentSize,
+        words: destinationWords,
+        embeddingsFile: dstEmbeddings.map(URL.init(fileURLWithPath:)),
+        useTemporalAttention: true
+    )
+    let mapper = Sequential {
+        Dense<Float, CPU>(inputSize: latentSize, outputSize: latentSize)
+        Relu<Float, CPU>()
+    }
+    let combined = AttentionSeq2Seq(
+        encoder: encoder,
+        decoder: decoder,
+        transformHiddenState: mapper
+    )
+    
+    return combined
+}
 
 
 let group = Group { g in
@@ -121,29 +151,22 @@ let group = Group { g in
         print("Creating model...", terminator: "")
         fflush(stdout)
         
-        let encoder = BidirectionalEncoder<Float, CPU>(
-            inputSize: english.words.count,
-            embeddingSize: embSize,
-            hiddenSize: latentSize,
-            embeddingsFile: srcEmbeddings.map(URL.init(fileURLWithPath:)),
-            words: english.words
+        var optim = Adam(
+            model: makeModel(
+                embeddingSize: embSize,
+                latentSize: latentSize,
+                sourceWords: english.words,
+                destinationWords: german.words,
+                srcEmbeddings: srcEmbeddings,
+                dstEmbeddings: dstEmbeddings
+            ),
+            learningRate: Tensor(learningRate)
         )
-        let decoder = AttentionDecoder<Float, CPU>(
-            inputSize: german.words.count,
-            embeddingSize: embSize,
-            hiddenSize: latentSize,
-            words: german.words,
-            embeddingsFile: dstEmbeddings.map(URL.init(fileURLWithPath:)),
-            useTemporalAttention: true
-        )
-        let mapper = Sequential<Float, CPU>(
-            Dense(inputFeatures: latentSize, outputFeatures: latentSize).asAny(),
-            Relu().asAny()
-        )
-        let combined = AttentionSeq2Seq(encoder: encoder, decoder: decoder, transformHiddenState: mapper)
-        print(" Done.")
+        var combined: AttentionSeq2Seq<Float, CPU> {
+            optim.model
+        }
         
-        let optim = Adam(parameters: combined.trainableParameters, learningRate: learningRate)
+        print(" Done.")
         
         let epochs = iterations
         
@@ -152,7 +175,6 @@ let group = Group { g in
         // let writer = TBSummaryWriter(runName: "runs/\(ISO8601DateFormatter().string(from: Date()))")
         
         for i in 1 ... epochs {
-            optim.zeroGradient()
             
             var combinedLoss = Tensor<Float, CPU>(0)
             
@@ -170,9 +192,9 @@ let group = Group { g in
                 let teacherForcing = Float.random(in: 0 ... 1) <= teacherForcingRate
                 
                 if teacherForcing {
-                    decoded = combined.forward(Tensor<Int32, CPU>(engIdxs), Tensor<Int32, CPU>(gerIdxs))
+                    decoded = combined.callAsFunction((Tensor<Int32, CPU>(engIdxs), Tensor<Int32, CPU>(gerIdxs))).decoded
                 } else {
-                    decoded = combined.forward(Tensor<Int32, CPU>(engIdxs))
+                    decoded = combined.callAsFunction((Tensor<Int32, CPU>(engIdxs), nil)).decoded
                 }
                 
                 combinedLoss += Helper<Float, CPU>().decodingLoss(forExpectedSequence: Array(gerIdxs.dropFirst()), actualSequence: decoded)
@@ -182,24 +204,26 @@ let group = Group { g in
             }
             
             combinedLoss = combinedLoss / Tensor(Float(batchSize))
-            combinedLoss.backwards()
-            optim.step()
+            let grads = combinedLoss.gradients(of: combined.parameters)
+            optim.update(along: grads)
             
             // Prevents stack overflow when releasing compute graph lol
-            combinedLoss.detachAll()
             
-            progressBar.next(userInfo: "[loss: \(combinedLoss)] (\(src) -> \(seq))")
+            progressBar.next(userInfo: "[loss: \(combinedLoss)] (\(src.prefix(80)) -> \(seq.prefix(80)))")
             writer.write(combinedLoss.item, named: "loss", at: i)
             // writer.addScalar(name: "loss", value: Double(combinedLoss.item), iteration: i)
             
             if checkpointFrequency > 0 && i.isMultiple(of: checkpointFrequency) && i != epochs {
-                try combined.saveWeights(to: URL(fileURLWithPath: "model_\(i).json", relativeTo: checkpointDir))
+                try JSONEncoder()
+                    .encode(combined)
+                    .write(to: URL(fileURLWithPath: "model_\(i).json", relativeTo: checkpointDir))
             }
         }
         progressBar.complete()
         
-        let destinationURL = URL(fileURLWithPath: destinationPath)
-        try combined.saveWeights(to: destinationURL)
+        try JSONEncoder()
+            .encode(combined)
+            .write(to: URL(fileURLWithPath: destinationPath))
     }
     
     g.command(
@@ -220,33 +244,12 @@ let group = Group { g in
 //        let (english, german, pairs) = try Language.pair(from: dsPath, replacements: (engReplacements, gerReplacements))
         print(" Done.")
         
-        print("Creating model...", terminator: "")
-        fflush(stdout)
-        let encoder = BidirectionalEncoder<Float, CPU>(
-            inputSize: english.words.count,
-            embeddingSize: embSize,
-            hiddenSize: latentSize,
-            embeddingsFile: nil,
-            words: english.words
-        )
-        let decoder = AttentionDecoder<Float, CPU>(
-            inputSize: german.words.count,
-            embeddingSize: embSize,
-            hiddenSize: latentSize,
-            words: german.words,
-            embeddingsFile: nil,
-            useTemporalAttention: true
-        )
-        let mapper = Sequential<Float, CPU>(
-            Dense(inputFeatures: latentSize, outputFeatures: latentSize).asAny(),
-            Relu().asAny()
-        )
-        let combined = AttentionSeq2Seq(encoder: encoder, decoder: decoder, transformHiddenState: mapper)
-        print(" Done.")
-        
         print("Loading trained model...", terminator: "")
         fflush(stdout)
-        try combined.loadWeights(from: URL(fileURLWithPath: modelPath))
+        
+        let modelData = try Data(contentsOf: URL(fileURLWithPath: modelPath))
+        let model = try JSONDecoder().decode(AttentionSeq2Seq<Float, CPU>.self, from: modelData)
+        
         print(" Done.")
         
         print("> ", terminator: "")
@@ -258,7 +261,7 @@ let group = Group { g in
 
             let inputIdxs = english.indexSequence(from: input)
 
-            let translations = combined.translate(inputIdxs, from: english, to: german, beamCount: beamCount)
+            let translations = model.translate(inputIdxs, from: english, to: german, beamCount: beamCount)
             let (translated, attn) = translations[0]
 
             for (t, _) in translations {
@@ -287,4 +290,3 @@ let group = Group { g in
 }
 
 group.run()
-

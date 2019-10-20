@@ -2,132 +2,87 @@
 //  Transformer.swift
 //  NMTSwift
 //
-//  Created by Palle Klewitz on 08.05.19.
-//  Copyright (c) 2019 Palle Klewitz
+//  Created by Palle Klewitz on 20.10.19.
 //
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in all
-//  copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//  SOFTWARE.
 
 import Foundation
 import DL4S
 
-// WIP
 
-class PositionalEncoder<Element: NumericType, Device: DeviceType>: Layer {
-    typealias Input = Element
-    var parameters: [Tensor<Element, Device>] {
-        return []
-    }
-    var isTrainable: Bool {
-        get {
-            return false
-        }
-        set {
-            // noop
-        }
-    }
+struct PositionalEncoder<Element: NumericType, Device: DeviceType>: LayerType {
+    var parameters: [Tensor<Element, Device>] {[]}
+    var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {[]}
     
-    func forward(_ inputs: [Tensor<Element, Device>]) -> Tensor<Element, Device> {
-        let x = inputs[0]
+    var modelDim: Int
+    
+    func callAsFunction(_ inputs: Tensor<Element, Device>) -> Tensor<Element, Device> {
+        var x = inputs
+        x = x * sqrt(Tensor(Element(modelDim)))
         
-        let seqlen = x.shape[0]
-        let hiddenSize = x.shape[1]
+        let seqlen = inputs.shape[1]
         
-        let ramp = Tensor<Element, Device>.arange(lowerBound: 0, upperBound: 1, by: 2 / Element(hiddenSize))
-        let pramp = ramp.exp(withBase: 10000)
-        let pos = Tensor<Element, Device>.arange(lowerBound: 0, upperBound: Element(seqlen), by: 1).view(as: -1, 1)
+        let expVals = Tensor(linearRampWithLowerBound: 0, upperBound: Element(seqlen), by: 1)
+        .view(as: -1, 1) /
+        Tensor(10000)
+        .raised(toPowerOf:
+            (2 * Tensor<Element, Device>(linearRampWithLowerBound: Element(0), upperBound: Element(modelDim / 2), by: Element(1)))
+        )
+        .view(as: 1, -1)
         
-        let sinEnc = sin(pos / pramp).unsqueeze(at: 2)
-        let cosEnc = cos(pos / pramp).unsqueeze(at: 2)
-        let stacked = stack(sinEnc, cosEnc, axis: 2)
+        let encoding = Tensor(stacking: [
+            sin(expVals), cos(expVals)
+        ], along: 1)
         
-        return x + stacked.view(as: seqlen, hiddenSize)
+        return x + encoding
     }
 }
 
-class MultiHeadAttention<Element: RandomizableType, Device: DeviceType>: Layer {
-    typealias Input = Element
-    
-    var isTrainable: Bool = true
-    
-    let queryLinear: Dense<Element, Device>
-    let keyLinear: Dense<Element, Device>
-    let valuesLinear: Dense<Element, Device>
-    let out: Dense<Element, Device>
-    let softmax = Softmax<Element, Device>()
-    
-    let headCount: Int
-    let size: Int
-    
+
+struct MultiHeadAttention<Element: RandomizableType, Device: DeviceType>: LayerType {
     var parameters: [Tensor<Element, Device>] {
-        return Array([
-            queryLinear.parameters,
-            keyLinear.parameters,
-            valuesLinear.parameters,
-            out.parameters
+        Array([
+            makeQ.parameters,
+            makeV.parameters,
+            makeK.parameters,
+            output.parameters,
+            dropout.parameters
         ].joined())
     }
     
-    var trainableParameters: [Tensor<Element, Device>] {
-        guard isTrainable else {
-            return []
-        }
-        return Array([
-            queryLinear.trainableParameters,
-            keyLinear.trainableParameters,
-            valuesLinear.trainableParameters,
-            out.trainableParameters
+    var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {
+        Array([
+            makeQ.parameterPaths.map((\Self.makeQ).appending(path:)),
+            makeV.parameterPaths.map((\Self.makeV).appending(path:)),
+            makeK.parameterPaths.map((\Self.makeK).appending(path:)),
+            output.parameterPaths.map((\Self.output).appending(path:)),
+            dropout.parameterPaths.map((\Self.dropout).appending(path:))
         ].joined())
     }
     
-    init(size: Int, headCount: Int) {
-        queryLinear = Dense(inputFeatures: size, outputFeatures: size)
-        keyLinear = Dense(inputFeatures: size, outputFeatures: size)
-        valuesLinear = Dense(inputFeatures: size, outputFeatures: size)
-        out = Dense(inputFeatures: size, outputFeatures: size)
+    let heads: Int
+    let modelDim: Int
+    
+    var makeQ: Dense<Element, Device>
+    var makeV: Dense<Element, Device>
+    var makeK: Dense<Element, Device>
+    var output: Dense<Element, Device>
+    
+    var dropout: Dropout<Element, Device>
+    
+    init(heads: Int, modelDim: Int, dropout: Float = 0.1) {
+        self.heads = heads
+        self.modelDim = modelDim
         
-        self.size = size
-        self.headCount = headCount
+        self.makeQ = Dense(inputSize: modelDim, outputSize: modelDim)
+        self.makeV = Dense(inputSize: modelDim, outputSize: modelDim)
+        self.makeK = Dense(inputSize: modelDim, outputSize: modelDim)
+        self.output = Dense(inputSize: modelDim, outputSize: modelDim)
+        self.dropout = Dropout(rate: dropout)
     }
     
-    func forward(_ inputs: [Tensor<Element, Device>]) -> Tensor<Element, Device> {
-        var q = inputs[0]
-        var k = inputs[1]
-        var v = inputs[2]
+    func callAsFunction(_ inputs: Tensor<Element, Device>) -> Tensor<Element, Device> {
+        let batchSize = inputs.shape[0]
         
-        q = queryLinear(q)
-            .view(as: -1, headCount, size)  // [_, headCount, size]
-            .permuted(to: 1, 0, 2) // [headCount, _, size]
-        
-        k = keyLinear(k)
-            .view(as: -1, headCount, size)
-            .permuted(to: 1, 0, 2) // [headCount, _, size]
-        
-        v = valuesLinear(v)
-            .view(as: -1, headCount, size)
-            .permuted(to: 1, 0, 2) // [headCount, _, size]
-        
-        var s = q.mmul(k.permuted(to: 0, 2, 1)) // [headCount, _, size] @ [headCount, size, _]
-        s = softmax(s)
-        s = s.mmul(v)
-        s = s.permuted(to: 1, 0, 2)
-        s = s.view(as: -1, size)
-        
-        return out(s)
+        fatalError()
     }
 }

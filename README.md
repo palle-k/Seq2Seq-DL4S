@@ -29,6 +29,7 @@ where the attention module is forced to focus its attention onto different state
 For a detailed usage description and additional options run 
 
 ```bash
+swift run NMTSwift --help
 swift run NMTSwift [subcommand] --help
 ```
 
@@ -46,10 +47,12 @@ Example in source language\tExample in destination language
 It is recommended to run everything in release configuration (`-c release`)
 
 ```bash
-swift run -c release NMTSwift train eng-ger.txt ./models  --logdir ./logs
+swift run -c release NMTSwift train eng-ger.txt ./model.json  --logdir ./logs
 ```
 
 ### Evaluate  model
+
+Evaluation requires Python 3, numpy and matplotlib to be installed to visualize the attention distribution.
 
 ```bash
 swift run -c release NMTSwift eval eng-ger.txt models/encoder.json models/decoder.json

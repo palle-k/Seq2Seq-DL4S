@@ -92,7 +92,7 @@ private let np = Python.import("numpy")
 enum Plot {
     static func matshow<Device>(_ tensor: Tensor<Float, Device>) {
         let arr = tensor
-            .flattenedArray
+            .elements
             .makeNumpyArray()
             .reshape(tensor.shape)
         plt.matshow(arr)
@@ -106,7 +106,7 @@ enum Plot {
         let ticker = Python.import("matplotlib.ticker")
         
         let arr = tensor
-            .flattenedArray
+            .elements
             .makeNumpyArray()
             .reshape(tensor.shape)
         

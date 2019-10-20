@@ -35,21 +35,31 @@ struct Language {
     var wordToIndex: [String: Int]
     var words: [String]
     
-    init(fromExamples examples: [String]) {
+    init<S: Sequence>(fromExamples examples: S) where S.Element == String {
+        print("Getting words...")
+        
         let words = examples
+            .lazy
             .flatMap {
                 $0.components(separatedBy: .whitespaces)
             }
             .filter {!$0.isEmpty}
         
-        let frequencies: [String: Int] = words.reduce(into: [:], {$0[$1, default: 0] += 1})
+        print("Counting...")
         
-        let uniqueWords = Set(words)
+        let frequencies: [String: Int] = words.reduce(into: [:], {$0[$1, default: 0] += 1})
+
+        print("Finding unique words")
+        
+        let uniqueWords = frequencies
+            .keys
             .sorted(by: {frequencies[$0, default: 0] < frequencies[$1, default: 0]})
             .reversed()
         
+        print("Building index...")
+        
         self.words = ["<s>", "</s>", "<unk>"] + uniqueWords
-        self.wordToIndex = Dictionary(uniqueKeysWithValues: self.words.enumerated().map {($1, $0)})
+        self.wordToIndex = Dictionary(uniqueKeysWithValues: self.words.enumerated().lazy.map {($1, $0)})
     }
     
     init(words: [String]) {
@@ -75,7 +85,7 @@ struct Language {
     }
     
     static func cleanup(_ string: String) -> String {
-        return string
+        string
             .lowercased()
             .replacingOccurrences(of: #"([.,?!();\-_$°+/:])"#, with: " $1 ", options: .regularExpression)
             .replacingOccurrences(of: #"[„"”“‟‘»«]"#, with: " \" ", options: .regularExpression)
@@ -84,35 +94,45 @@ struct Language {
     }
     
     static func pair(from path: String, maxLength: Int? = nil, replacements: ([String: String], [String: String])) throws -> (Language, Language, [(String, String)]) {
-        let data = try Data(contentsOf: URL(fileURLWithPath: path))
-        let string = String(data: data, encoding: .utf8)!
+        print()
+        print("Reading lines...")
         
-        let cleaned = Language.cleanup(string)
+        let lines = try autoreleasepool { () -> [String] in
+            let data = try Data(contentsOf: URL(fileURLWithPath: path))
+            let string = String(data: data, encoding: .utf8)!
+
+            return string.components(separatedBy: "\n")
+                .filter {!$0.isEmpty}
+        }
         
-        let lines = cleaned.components(separatedBy: "\n")
-            .filter {!$0.isEmpty}
+        print("Getting items...")
         
         let pairs = lines
-            .map {$0.components(separatedBy: "\t")}
-            .map {($0[0], $0[1])}
+            .map { line -> (String, String) in
+                autoreleasepool {
+                    let cleaned = Language.cleanup(line)
+                    let components = cleaned.components(separatedBy: "\t")
+                    
+                    let s = replacements.0.reduce(components[0], {$0.replacingOccurrences(of: $1.key, with: $1.value)})
+                    let t = replacements.1.reduce(components[1], {$0.replacingOccurrences(of: $1.key, with: $1.value)})
+                    
+                    return (s, t)
+                }
+            }
             .filter { pair -> Bool in
                 if let maxLength = maxLength {
-                    return pair.0.components(separatedBy: .whitespaces).count <= maxLength
+                    return pair.0.split(separator: " ").count <= maxLength
                 } else {
                     return true
                 }
             }
-            .map {
-                (
-                    replacements.0.reduce($0, {$0.replacingOccurrences(of: $1.key, with: $1.value)}),
-                    replacements.1.reduce($1, {$0.replacingOccurrences(of: $1.key, with: $1.value)})
-                )
-            }
+        
+        print("Collecting vocabulary...")
         
         let l1 = Language(fromExamples: pairs.map {$0.0})
         let l2 = Language(fromExamples: pairs.map {$1})
         
-        return (l1, l2, pairs)
+        return (l1, l2, Array(pairs))
     }
     
     func formattedSentence(from sequence: [Int32]) -> String {
