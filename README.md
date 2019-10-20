@@ -50,6 +50,17 @@ It is recommended to run everything in release configuration (`-c release`)
 swift run -c release NMTSwift train eng-ger.txt ./model.json  --logdir ./logs
 ```
 
+### Translation Web App
+
+A trained model can be tested using the translation web app, which is included in this repository.
+To build the translation app, navigate into the `static` folder and run `npm run build`.
+
+Then navigate back to the repository root and run the server using the following command:
+
+```bash
+swift run -c release NMTSwift eval eng-ger.txt models/encoder.json models/decoder.json
+```
+
 ### Evaluate  model
 
 Evaluation requires Python 3, numpy and matplotlib to be installed to visualize the attention distribution.

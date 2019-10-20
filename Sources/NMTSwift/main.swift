@@ -26,6 +26,7 @@
 import DL4S
 import Foundation
 import Commander
+import Kitura
 
 let engReplacements = [
     "i'm": "i am",
@@ -273,20 +274,66 @@ let group = Group { g in
             print("> ", terminator: "")
             fflush(stdout)
         }
-        
-//        while true {
-//            let (src, dst) = pairs.randomElement()!
-//            let engIdxs = english.indexSequence(from: src)
-//            let gerIdxs = german.indexSequence(from: dst)
-//
-//            let (decoded, attn) = combined.forwardWithScores([Tensor<Int32, CPU>(engIdxs), Tensor<Int32, CPU>(gerIdxs)])
-//            let translated = Helper<Float, CPU>().sequence(from: decoded)
-//
-//            Plot.showAttention(attn, source: ["<s>"] + src.components(separatedBy: .whitespaces) + ["</s>"], destination: german.wordSequence(from: translated))
-//
-//            print("\(english.formattedSentence(from: engIdxs)) -> \(german.formattedSentence(from: translated))")
-//        }
     }
+    
+    g.command(
+            "serve",
+            //Argument<String>("dataset", description: "Path to dataset", validator: validatePathExists(isDirectory: false)),
+            Argument<String>("src_vocab", description: "Path to source vocabulary", validator: validatePathExists(isDirectory: false)),
+            Argument<String>("dst_vocab", description: "Path to destination vocabulary", validator: validatePathExists(isDirectory: false)),
+            Argument<String>("model_file", description: "Path to the stored weights of the model", validator: validatePathExists(isDirectory: false)),
+            Option<Int>("emb_size", default: 100, description: "Size of embedded words", validator: validatePositive(message: "Embedding dimensionality must be greater than 0.")),
+            Option<Int>("latent_size", default: 1024, flag: nil, description: "Size of latent sentence representation", validator: validatePositive(message: "Latent size must be positive")),
+            Option<Int>("beam_count", default: 4, flag: nil, description: "Number of beams to use for decoding", validator: validatePositive(message: "Number of beams must be positive")),
+            Option<Int>("port", default: 5000, flag: nil, description: "Number of beams to use for decoding", validator: validatePositive(message: "Port number must be positive")),
+            description: "Run a translation service."
+        ) { srcVocab, dstVocab, modelPath, embSize, latentSize, beamCount, port in
+            print("Loading vocabulary...", terminator: "")
+            fflush(stdout)
+            let english = try Language(contentsOf: URL(fileURLWithPath: srcVocab))
+            let german = try Language(contentsOf: URL(fileURLWithPath: dstVocab))
+    //        let (english, german, pairs) = try Language.pair(from: dsPath, replacements: (engReplacements, gerReplacements))
+            print(" Done.")
+            
+            print("Loading trained model...", terminator: "")
+            fflush(stdout)
+            
+            let modelData = try Data(contentsOf: URL(fileURLWithPath: modelPath))
+            let model = try JSONDecoder().decode(AttentionSeq2Seq<Float, CPU>.self, from: modelData)
+            
+            print(" Done.")
+            
+            let router = Router()
+            router.all(middleware: BodyParser())
+            
+            router.post("/translate") { request, response, next in
+                defer { next() }
+                guard let text = request.body?.asJSON?["text"] as? String else {
+                    response
+                        .send(status: .badRequest)
+                        .send(json: ["error": "request is missing text field in body."])
+                    return
+                }
+                
+                let cleaned = engReplacements
+                    .reduce(text.lowercased(), {$0.replacingOccurrences(of: $1.key, with: $1.value)})
+                let input = Language.cleanup(cleaned)
+                let inputIdxs = english.indexSequence(from: input)
+                
+                let translations = model.translate(inputIdxs, from: english, to: german, beamCount: beamCount)
+                let (translated, _) = translations[0]
+                let translatedText = german.formattedSentence(from: translated)
+                
+                response.send(json: ["text": translatedText])
+            }
+            
+            router.all("/", middleware: StaticFileServer(path: "./static/build/"))
+
+            Kitura.addHTTPServer(onPort: port, with: router)
+            print("Serving on http://0.0.0.0/\(port)")
+            
+            Kitura.run()
+        }
 }
 
 group.run()

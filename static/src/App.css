@@ -1,0 +1,127 @@
+body {
+    background-color: #f4f4f4;
+    /*noinspection CssInvalidFunction*/
+    padding: calc(env(safe-area-inset-top) + 20px) calc(env(safe-area-inset-right) + 20px) calc(env(safe-area-inset-bottom) + 20px) calc(env(safe-area-inset-left) + 20px);
+}
+
+.App-header {
+    background-color: #0067ff;
+    height: 60px;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+    /*noinspection CssInvalidFunction*/
+    padding-top: env(safe-area-inset-top);
+    /*noinspection CssInvalidFunction*/
+    padding-left: env(safe-area-inset-left);
+    /*noinspection CssInvalidFunction*/
+    padding-right: env(safe-area-inset-right);
+}
+
+.App-header h3 {
+    padding: 0;
+    margin: 18px;
+    color: white;
+}
+
+.TranslationContainer {
+    height: calc(100vh - 160px);
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+    margin: 60px auto 0;
+}
+
+.TranslationBox {
+    height: calc(50% - 2px);
+    display: flex;
+    flex-flow: column;
+}
+
+@media (min-aspect-ratio: 1/1) {
+    hr {
+        display: none;
+    }
+
+    .TranslationContainer {
+        display: flex;
+        flex-flow: row;
+        justify-content: space-evenly;
+        margin-top: 100px;
+        max-height: 400px;
+        max-width: 1200px;
+    }
+
+    .TranslationBox {
+        height: 100%;
+        flex: 1;
+    }
+
+    .TranslationBox:first-of-type {
+        border-right: 2px solid #eaeaea;
+    }
+}
+
+@media (max-aspect-ratio: 1/1) {
+    hr {
+        outline: none;
+        border: none;
+        border-bottom: 2px solid #eaeaea;
+        padding: 0;
+        margin: 0;
+    }
+
+    .TranslationContainer {
+        display: flex;
+        flex-flow: column;
+        max-height: 600px;
+        max-width: 800px;
+    }
+
+    .TranslationBox {
+        height: calc(50% - 2px);
+        flex: 1 1 auto;
+    }
+}
+
+
+
+.LanguageName {
+    padding: 15px;
+    margin: 0;
+    font-size: 20px;
+    color: #0067ff;
+    font-weight: 500;
+    border-bottom: 2px solid #eaeaea;
+    flex: 0 1 auto;
+}
+
+.TranslationSourceText {
+    border: none;
+    outline: none;
+    resize: none;
+    background: none;
+    padding: 15px;
+    margin: 0;
+    width: 100%;
+    font-size: 24px;
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    font-weight: 500;
+}
+
+.TranslationTargetText {
+    padding: 15px;
+    margin: 0;
+    width: 100%;
+    font-size: 24px;
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    font-weight: 500;
+}
+
+.TranslationTargetText.empty {
+    color: #ababab;
+}
