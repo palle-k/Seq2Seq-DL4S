@@ -1,5 +1,7 @@
 # Seq2Seq with Attention using DL4S
 
+![demo image](https://github.com/palle-k/Seq2Seq-DL4S/blob/master/.github/image.png?raw=true)
+
 An implementation of seq2seq for neural machine translation in Swift based on DL4S.
 
 Seq2seq uses two recurrent neural networks, an encoder and a decoder, which are trained in an end to end setup:
