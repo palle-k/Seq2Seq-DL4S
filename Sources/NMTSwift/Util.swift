@@ -148,27 +148,8 @@ extension Sequence {
 }
 
 extension Sequence {
-    func max(count: Int, by comparator: (Element, Element) -> Bool) -> [Element] {
-        var topk = self.prefix(count).sorted(by: comparator)
-        
-        outer: for element in dropFirst(count) {
-            guard comparator(topk[0], element) else {
-                continue
-            }
-            
-            for i in 0 ..< count {
-                if !comparator(topk[i], element) {
-                    topk.insert(element, at: i)
-                    topk.remove(at: 0)
-                    continue outer
-                }
-            }
-            
-            topk.append(element)
-            topk.remove(at: 0)
-        }
-        
-        return topk.reversed()
+    func top(count: Int, by comparator: (Element, Element) -> Bool) -> [Element] {
+        return sorted(by: comparator).reversed().prefix(count).collect(Array.init)
     }
 }
 

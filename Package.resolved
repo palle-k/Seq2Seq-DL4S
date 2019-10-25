@@ -42,7 +42,7 @@
         "repositoryURL": "https://github.com/palle-k/DL4S.git",
         "state": {
           "branch": "develop",
-          "revision": "1911a7a5e1644f3cc36a7c2c1b6a68aca7c3fd41",
+          "revision": "9b62bbf9db4b6645b9f92a91dfc3d2add5682cdf",
           "version": null
         }
       },
@@ -51,8 +51,8 @@
         "repositoryURL": "https://github.com/IBM-Swift/Kitura",
         "state": {
           "branch": null,
-          "revision": "0777165ed5b966ad2e62f9f9101cfa8b283e7684",
-          "version": "2.8.1"
+          "revision": "728acab53615e662cac6cd5a98391a471907ed16",
+          "version": "2.9.0"
         }
       },
       {
@@ -97,6 +97,15 @@
         "state": {
           "branch": "master",
           "revision": "3ba9151c87d9ead08188e9e3d789b5c6b987ddad",
+          "version": null
+        }
+      },
+      {
+        "package": "MKLSwift",
+        "repositoryURL": "https://github.com/palle-k/MKLSwift.git",
+        "state": {
+          "branch": "master",
+          "revision": "65e80159de5e5c65cb88671721ae4832820f03d0",
           "version": null
         }
       },

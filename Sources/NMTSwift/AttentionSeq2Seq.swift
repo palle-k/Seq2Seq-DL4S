@@ -37,7 +37,7 @@ struct Seq2SeqAttentionBeamState<Element: NumericType, Device: DeviceType>: Stat
     var attentionSum: Tensor<Element, Device>
     
     func appending(_ element: (word: Int32, hiddenState: Tensor<Element, Device>, attention: Tensor<Element, Device>, attentionSum: Tensor<Element, Device>)) -> Seq2SeqAttentionBeamState<Element, Device> {
-        return Seq2SeqAttentionBeamState(indices: indices + [element.word], hiddenState: element.hiddenState, attentions: attentions + [element.attention], attentionSum: attentionSum)
+        return Seq2SeqAttentionBeamState(indices: indices + [element.word], hiddenState: element.hiddenState, attentions: attentions + [element.attention], attentionSum: element.attentionSum)
     }
 }
 
@@ -69,28 +69,6 @@ struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerTyp
         self.transformHiddenState = transformHiddenState
     }
     
-    func decodeSequence(fromInitialState initialState: Tensor<Element, Device>, encoderStates: Tensor<Element, Device>, initialToken: Int32, endToken: Int32, maxLength: Int) -> (decoded: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>) {
-        var hiddenState = initialState
-        var token = initialToken
-        var sequence: [Tensor<Element, Device>] = []
-        var attnSum = Tensor<Element, Device>(0)
-        var attentionScores: [Tensor<Element, Device>] = []
-        for _ in 0 ..< maxLength {
-            let (out, h, attn, asum) = decoder.callAsFunction((input: Tensor([token]), state: hiddenState, encoderStates: encoderStates, attentionHistory: attnSum))
-            sequence.append(out) // out has a shape of [1, vocabularySize]
-            hiddenState = h
-            attnSum = asum
-            token = Int32(out.argmax())
-            attentionScores.append(attn.squeezed().unsqueezed(at: 0))
-            
-            if token == endToken {
-                break
-            }
-        }
-        
-        return (stack(sequence), stack(attentionScores))
-    }
-    
     func decodeSequence(fromInitialState initialState: Tensor<Element, Device>, encoderStates: Tensor<Element, Device>, forcedResult: [Int32]) -> (decoded: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>) {
         var hiddenState = initialState
         var sequence: [Tensor<Element, Device>] = []
@@ -103,6 +81,29 @@ struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerTyp
             attnSum = asum
             sequence.append(out)
             attentionScores.append(attn.squeezed().unsqueezed(at: 0))
+        }
+        
+        return (stack(sequence), stack(attentionScores))
+    }
+    
+    func decodeSequence(fromInitialState initialState: Tensor<Element, Device>, encoderStates: Tensor<Element, Device>, initialToken: Int32, endToken: Int32, maxLength: Int) -> (decoded: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>) {
+        var hiddenState = initialState
+        var token = initialToken
+        var sequence: [Tensor<Element, Device>] = []
+        var attnSum = Tensor<Element, Device>(0)
+        var attentionScores: [Tensor<Element, Device>] = []
+        for _ in 0 ..< maxLength {
+            let (out, h, attn, asum) = decoder.callAsFunction((input: Tensor([token]), state: hiddenState, encoderStates: encoderStates, attentionHistory: attnSum))
+            sequence.append(out) // out has a shape of [1, vocabularySize]
+            hiddenState = h
+            attnSum = asum
+            
+            token = Int32(out.argmax())
+            attentionScores.append(attn.squeezed().unsqueezed(at: 0))
+            
+            if token == endToken {
+                break
+            }
         }
         
         return (stack(sequence), stack(attentionScores))
@@ -121,7 +122,6 @@ struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerTyp
                     context.add(hypothesis)
                     continue
                 }
-                
                 let (out, h, attn, attnSum) = decoder.callAsFunction((
                     input: Tensor([hypothesis.state.indices.last!]),
                     state: hypothesis.state.hiddenState,
@@ -132,7 +132,7 @@ struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerTyp
                 let best = out
                     .elements
                     .enumerated()
-                    .max(count: beamCount, by: {$0.element < $1.element})
+                    .top(count: beamCount, by: {$0.element < $1.element})
                 
                 for (idx, prob) in best {
                     context.add(
@@ -157,25 +157,24 @@ struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerTyp
     }
     
     func translate(_ text: [Int32], from sourceLanguage: Language, to destinationLanguage: Language, beamCount: Int) -> [([Int32], Tensor<Element, Device>)] {
-//        let encoded = encoder(Tensor<Input, Device>(text))
-//        let initialState = transformHiddenState(encoded[-1])
+//        let (decoded, attn) = callAsFunction((
+//            Tensor<Int32, Device>(text),
+//            nil
+//        ))
 //
-//        let states = self.beamDecode(
-//            fromInitialState: initialState,
-//            encoderStates: encoded,
-//            initialToken: Int32(Language.startOfSentence),
-//            endToken: Int32(Language.endOfSentence),
-//            maxLength: text.count * 2,
-//            beamCount: beamCount
-//        )
-//        return states.map {state in (state.indices, stack(state.attentions))}
+//        return [(Helper<Element, Device>().sequence(from: decoded), attn)]
         
-        let (decoded, attn) = callAsFunction((
-            Tensor<Int32, Device>(text),
-            nil
-        ))
-        
-        return [(Helper<Element, Device>().sequence(from: decoded), attn)]
+        let encoded = encoder.callAsFunction(Tensor<Int32, Device>(text))
+        let initialState = transformHiddenState.callAsFunction(encoded[-1])
+        let states = self.beamDecode(
+            fromInitialState: initialState,
+            encoderStates: encoded,
+            initialToken: Int32(Language.startOfSentence),
+            endToken: Int32(Language.endOfSentence),
+            maxLength: text.count * 2,
+            beamCount: beamCount
+        )
+        return states.map {state in (state.indices.dropFirst().collect(Array.init), stack(state.attentions))}
     }
     
     func callAsFunction(_ inputs: (input: Tensor<Int32, Device>, target: Tensor<Int32, Device>?)) -> (decoded: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>) {
