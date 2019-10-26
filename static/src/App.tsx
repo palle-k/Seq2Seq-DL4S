@@ -5,7 +5,7 @@ import {connect} from "react-redux";
 
 interface AppProps {
     text?: string,
-    translatedText?: string,
+    translations?: Array<string>,
     setText?: (text: string) => void
 }
 
@@ -33,9 +33,10 @@ class App extends React.Component<AppProps> {
                     <hr />
                     <div className={"TranslationTarget TranslationBox"}>
                         <p className={"LanguageName"}>German</p>
-                        <p className={this.props.translatedText!.length === 0 ? "TranslationTargetText empty" : "TranslationTargetText"}>
-                            {this.props.translatedText!.length === 0 ? "Translation" : this.props.translatedText}
+                        <p className={this.props.translations!.length === 0 ? "TranslationTargetText empty" : "TranslationTargetText"}>
+                            {this.props.translations!.length === 0 ? "Translation" : this.props.translations![0]}
                         </p>
+                        {this.props.translations!.slice(1).map(t => (<p className={"TranslationAlternative"}>{t}</p>))}
                     </div>
                 </div>
             </div>
@@ -46,7 +47,7 @@ class App extends React.Component<AppProps> {
 function mapStateToProps(state: AppState) {
     return {
         text: state.text,
-        translatedText: state.translatedText !== undefined ? state.translatedText : ""
+        translations: state.translations !== undefined ? state.translations : []
     }
 }
 

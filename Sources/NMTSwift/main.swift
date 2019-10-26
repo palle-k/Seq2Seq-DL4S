@@ -317,10 +317,7 @@ let group = Group { g in
                 let inputIdxs = english.indexSequence(from: input)
                 
                 let translations = model.translate(inputIdxs, from: english, to: german, beamCount: beamCount)
-                let (translated, _) = translations[0]
-                let translatedText = german.formattedSentence(from: translated)
-                
-                response.send(json: ["text": translatedText])
+                response.send(json: ["translations": translations.map {german.formattedSentence(from: $0.0)}])
             }
             
             router.all("/", middleware: StaticFileServer(path: "./static/build/"))

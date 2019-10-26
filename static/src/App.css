@@ -86,8 +86,6 @@ body {
     }
 }
 
-
-
 .LanguageName {
     padding: 15px;
     margin: 0;
@@ -118,8 +116,20 @@ body {
     width: 100%;
     font-size: 24px;
     box-sizing: border-box;
-    flex: 1 1 auto;
     font-weight: 500;
+}
+
+.TranslationAlternative {
+    padding: 15px;
+    margin: 0;
+    width: 100%;
+    font-size: 20px;
+    box-sizing: border-box;
+    flex: 0 1 auto;
+    font-weight: 500;
+    color: gray;
+    padding-top: 0;
+    padding-bottom: 5px;
 }
 
 .TranslationTargetText.empty {
