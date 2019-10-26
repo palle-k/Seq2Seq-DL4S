@@ -34,7 +34,24 @@ public extension Sequence {
 
 public extension Sequence {
     func top(count: Int, by comparator: (Element, Element) -> Bool) -> [Element] {
-        return sorted(by: comparator).reversed().prefix(count).collect(Array.init)
+        // return sorted(by: comparator).reversed().prefix(count).collect(Array.init)
+        return reduce(into: []) { acc, value in
+            var i = acc.count - 1
+            while i >= 0 {
+                if comparator(acc[i], value) {
+                    i -= 1
+                } else {
+                    break
+                }
+            }
+            if i < count - 1 {
+                acc.insert(value, at: i + 1)
+                
+                if acc.count > count {
+                    acc.removeLast()
+                }
+            }
+        }
     }
 }
 

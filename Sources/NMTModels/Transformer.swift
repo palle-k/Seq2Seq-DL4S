@@ -88,24 +88,37 @@ public struct Attention<Element: RandomizableType, Device: DeviceType>: LayerTyp
     
     var dropout: Dropout<Element, Device>
     var scale: Tensor<Element, Device>
+    let isCausal: Bool
     
     public var isDropoutActive: Bool {
         get {dropout.isActive}
         set {dropout.isActive = newValue}
     }
     
-    public init(size: Int, dropoutRate: Float) {
+    public init(size: Int, dropoutRate: Float, isCausal: Bool) {
         scale = Tensor(repeating: Element(size).sqrt(), shape: [])
         dropout = Dropout(rate: dropoutRate)
+        self.isCausal = isCausal
     }
     
     public func callAsFunction(_ inputs: AttentionInput<Element, Device>) -> Tensor<Element, Device> {
         // inputs: [batchSize, timeSteps, size]
-        
         let tmp1 = inputs.query.broadcastMatrixMultiplied(with: inputs.key, transposeOther: true) / scale
-        // TODO: Masked attention
-        let tmp3 = softmax(tmp1, axis: 2)
+        
+        let tmp2: Tensor<Element, Device>
+        if isCausal {
+            let (queryTimeSteps, keyTimeSteps) = (tmp1.shape[1], tmp1.shape[2])
+            let mask = Tensor<Element, Device>(repeating: 1, shape: [queryTimeSteps, keyTimeSteps])
+                .bandMatrix(belowDiagonal: nil, aboveDiagonal: queryTimeSteps - keyTimeSteps)
+                .unsqueezed(at: 0)
+            
+            tmp2 = tmp1 * mask - (1 - mask) * 1e-10
+        } else {
+            tmp2 = tmp1
+        }
+        let tmp3 = softmax(tmp2, axis: 2)
         let tmp4 = dropout(tmp3)
+        
         let tmp5 = tmp4.broadcastMatrixMultiplied(with: inputs.value)
         return tmp5
     }
@@ -134,8 +147,8 @@ public struct MultiHeadAttention<Element: RandomizableType, Device: DeviceType>:
         set {attention.isDropoutActive = newValue}
     }
     
-    public init(size: Int, headCount: Int, dropoutRate: Float) {
-        self.attention = Attention(size: size, dropoutRate: dropoutRate)
+    public init(size: Int, headCount: Int, dropoutRate: Float, isCausal: Bool) {
+        self.attention = Attention(size: size, dropoutRate: dropoutRate, isCausal: isCausal)
         self.inputTransform = Dense(inputSize: size, outputSize: size * 3)
         self.outputTransform = Dense(inputSize: size, outputSize: size)
         self.headCount = headCount
@@ -161,12 +174,10 @@ public struct MultiHeadAttention<Element: RandomizableType, Device: DeviceType>:
     }
     
     func splitQKV(_ input: Tensor<Element, Device>) -> AttentionInput<Element, Device> {
-        let (generalizedBatch, timeSteps, featuresPerHead) = (
-            input.shape[0], input.shape[1], input.shape[2] / 3
-        )
-        let query = input[0 ..< generalizedBatch, 0 ..< timeSteps, 0 ..< featuresPerHead]
-        let key = input[0 ..< generalizedBatch, 0 ..< timeSteps, featuresPerHead ..< 2 * featuresPerHead]
-        let value = input[0 ..< generalizedBatch, 0 ..< timeSteps, 2 * featuresPerHead ..< 3 * featuresPerHead]
+        let featuresPerHead = input.shape[2] / 3
+        let query = input[nil, nil, 0 ..< featuresPerHead]
+        let key = input[nil, nil, featuresPerHead ..< 2 * featuresPerHead]
+        let value = input[nil, nil, 2 * featuresPerHead ..< 3 * featuresPerHead]
         
         return AttentionInput(key: key, value: value, query: query)
     }
@@ -224,11 +235,12 @@ public struct TransformerLayer<Element: RandomizableType, Device: DeviceType> {
         }
     }
 
-    public init(size: Int, headCount: Int, dropoutRate: Float) {
+    public init(size: Int, headCount: Int, dropoutRate: Float, isCausal: Bool) {
         selfAttention = MultiHeadAttention(
             size: size,
             headCount: headCount,
-            dropoutRate: dropoutRate
+            dropoutRate: dropoutRate,
+            isCausal: isCausal
         )
         selfAttentionDropout = Dropout(rate: dropoutRate)
         selfAttentionNorm = LayerNorm(inputSize: [size])
@@ -252,7 +264,7 @@ public struct TransformerLayer<Element: RandomizableType, Device: DeviceType> {
     }
 }
 
-public struct TransformerEncoder<Element: RandomizableType, Device: DeviceType>: LayerType {
+public struct TransformerBase<Element: RandomizableType, Device: DeviceType>: LayerType {
     public var parameters: [Tensor<Element, Device>] {
         embedding.parameters + transformerLayers.flatMap {$0.parameters}
     }
@@ -265,16 +277,25 @@ public struct TransformerEncoder<Element: RandomizableType, Device: DeviceType>:
         ].joined())
     }
     
+    public var isDropoutActive: Bool {
+        get {transformerLayers.first?.isDropoutActive ?? false}
+        set {
+            for i in transformerLayers.indices {
+                transformerLayers[i].isDropoutActive = newValue
+            }
+        }
+    }
+    
     var embedding: Embedding<Element, Device>
     var transformerLayers: [TransformerLayer<Element, Device>]
     
-    public init(vocabularySize: Int, layerSizes: [Int], headCounts: [Int], dropoutRate: Float) {
+    public init(vocabularySize: Int, layerSizes: [Int], headCounts: [Int], dropoutRate: Float, isCausal: Bool) {
         guard let embeddingSize = layerSizes.first else {
             fatalError("At least one layer must be given")
         }
         embedding = Embedding(inputFeatures: vocabularySize, outputSize: embeddingSize)
         transformerLayers = zip(layerSizes, headCounts).map {
-            TransformerLayer(size: $0, headCount: $1, dropoutRate: dropoutRate)
+            TransformerLayer(size: $0, headCount: $1, dropoutRate: dropoutRate, isCausal: isCausal)
         }
     }
     
@@ -297,14 +318,14 @@ public struct TransformerLanguageModel<Element: RandomizableType, Device: Device
         ].joined())
     }
     
-    var encoder: TransformerEncoder<Element, Device>
+    var encoder: TransformerBase<Element, Device>
     var layerNorm: LayerNorm<Element, Device>
     
     public init(vocabularySize: Int, layerSizes: [Int], headCounts: [Int], dropoutRate: Float) {
         guard let lastSize = layerSizes.last else {
             fatalError("At least one layer must be given")
         }
-        encoder = TransformerEncoder(vocabularySize: vocabularySize, layerSizes: layerSizes, headCounts: headCounts, dropoutRate: dropoutRate)
+        encoder = TransformerBase(vocabularySize: vocabularySize, layerSizes: layerSizes, headCounts: headCounts, dropoutRate: dropoutRate, isCausal: false)
         layerNorm = LayerNorm(inputSize: [lastSize])
     }
     
