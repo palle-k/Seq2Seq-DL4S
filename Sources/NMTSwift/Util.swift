@@ -2,7 +2,7 @@
 //  Util.swift
 //  NMTSwift
 //
-//  Created by Palle Klewitz on 28.04.19.
+//  Created by Palle Klewitz on 26.10.19.
 //  Copyright (c) 2019 Palle Klewitz
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -138,24 +138,5 @@ struct TBSummaryWriter {
     
     func addScalar(name: String, value: Double, iteration: Int) {
         summaryWriter.add_scalar(name, value, iteration)
-    }
-}
-
-extension Sequence {
-    func collect<Collector>(_ collect: (Self) throws -> Collector) rethrows -> Collector {
-        return try collect(self)
-    }
-}
-
-extension Sequence {
-    func top(count: Int, by comparator: (Element, Element) -> Bool) -> [Element] {
-        return sorted(by: comparator).reversed().prefix(count).collect(Array.init)
-    }
-}
-
-
-extension Collection {
-    subscript(safe index: Index) -> Element? {
-        return indices.contains(index) ? self[index] : nil
     }
 }

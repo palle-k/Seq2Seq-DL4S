@@ -42,8 +42,8 @@ struct Seq2SeqAttentionBeamState<Element: NumericType, Device: DeviceType>: Stat
 }
 
 
-struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
-    var parameters: [Tensor<Element, Device>] {
+public struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
+    public var parameters: [Tensor<Element, Device>] {
         Array([
             encoder.parameters,
             decoder.parameters,
@@ -51,7 +51,7 @@ struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerTyp
         ].joined())
     }
     
-    var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {
+    public var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {
         Array([
             encoder.parameterPaths.map((\Self.encoder).appending(path:)),
             decoder.parameterPaths.map((\Self.decoder).appending(path:)),
@@ -63,7 +63,7 @@ struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerTyp
     var decoder: AttentionDecoder<Element, Device>
     var transformHiddenState: Sequential<Dense<Element, Device>, Relu<Element, Device>>
     
-    init(encoder: BidirectionalEncoder<Element, Device>, decoder: AttentionDecoder<Element, Device>, transformHiddenState: Sequential<Dense<Element, Device>, Relu<Element, Device>>) {
+    public init(encoder: BidirectionalEncoder<Element, Device>, decoder: AttentionDecoder<Element, Device>, transformHiddenState: Sequential<Dense<Element, Device>, Relu<Element, Device>>) {
         self.encoder = encoder
         self.decoder = decoder
         self.transformHiddenState = transformHiddenState
@@ -156,7 +156,7 @@ struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerTyp
         return context.bestHypotheses.map {$0.state}
     }
     
-    func translate(_ text: [Int32], from sourceLanguage: Language, to destinationLanguage: Language, beamCount: Int) -> [([Int32], Tensor<Element, Device>)] {
+    public func translate(_ text: [Int32], from sourceLanguage: Language, to destinationLanguage: Language, beamCount: Int) -> [([Int32], Tensor<Element, Device>)] {
         let encoded = encoder.callAsFunction(Tensor<Int32, Device>(text))
         let initialState = transformHiddenState.callAsFunction(encoded[-1])
         let states = self.beamDecode(
@@ -170,7 +170,7 @@ struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerTyp
         return states.map {state in (state.indices.dropFirst().collect(Array.init), stack(state.attentions))}
     }
     
-    func callAsFunction(_ inputs: (input: Tensor<Int32, Device>, target: Tensor<Int32, Device>?)) -> (decoded: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>) {
+    public func callAsFunction(_ inputs: (input: Tensor<Int32, Device>, target: Tensor<Int32, Device>?)) -> (decoded: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>) {
         let encoded = encoder(inputs.input)
         let initialState = transformHiddenState(encoded[-1])
         

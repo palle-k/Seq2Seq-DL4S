@@ -27,15 +27,15 @@ import Foundation
 import DL4S
 
 
-struct Helper<Element: RandomizableType, Device: DeviceType> {
-    func decodingLoss(forExpectedSequence expectedSequence: [Int32], actualSequence: Tensor<Element, Device>) -> Tensor<Element, Device> {
+public struct Helper {
+    public static func decodingLoss<Element: RandomizableType, Device: DeviceType>(forExpectedSequence expectedSequence: [Int32], actualSequence: Tensor<Element, Device>) -> Tensor<Element, Device> {
         let subsequence = Array(expectedSequence.prefix(actualSequence.shape[0]))
         let loss = categoricalCrossEntropy(expected: Tensor(subsequence), actual: actualSequence.squeezed(at: 1))
         
         return loss
     }
     
-    func sequence(from tensor: Tensor<Element, Device>) -> [Int32] {
+    public static func sequence<Element: RandomizableType, Device: DeviceType>(from tensor: Tensor<Element, Device>) -> [Int32] {
         var s: [Int32] = []
         
         for i in 0 ..< tensor.shape[0] {

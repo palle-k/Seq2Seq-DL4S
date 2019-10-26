@@ -21,11 +21,6 @@ This implementation provides tanh and general attention modules (following Luong
 Both attention modes optionally allow temporal attention,
 where the attention module is forced to focus its attention onto different states.
 
-## Source Code Overview
-
-- The encoder and decoder are defined in Sources/NMTSwift/Models.swift and both use gated recurrent units, which are computationally more efficent compared to LSTMs.
-- The encoding and decoding process is coordinated by the Helper type defined at Sources/NMTSwift/Helpers.swift
-
 ## Usage
 
 For a detailed usage description and additional options run 

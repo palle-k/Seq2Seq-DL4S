@@ -27,15 +27,15 @@ import Foundation
 import DL4S
 
 
-struct Language {
-    static let startOfSentence: Int = 0
-    static let endOfSentence: Int = 1
-    static let unknown: Int = 2
+public struct Language {
+    public static let startOfSentence: Int = 0
+    public static let endOfSentence: Int = 1
+    public static let unknown: Int = 2
     
-    var wordToIndex: [String: Int]
-    var words: [String]
+    public var wordToIndex: [String: Int]
+    public var words: [String]
     
-    init<S: Sequence>(fromExamples examples: S) where S.Element == String {
+    public init<S: Sequence>(fromExamples examples: S) where S.Element == String {
         print("Getting words...")
         
         let words = examples
@@ -62,29 +62,29 @@ struct Language {
         self.wordToIndex = Dictionary(uniqueKeysWithValues: self.words.enumerated().lazy.map {($1, $0)})
     }
     
-    init(words: [String]) {
+    public init(words: [String]) {
         self.words = words
         self.wordToIndex = Dictionary(uniqueKeysWithValues: self.words.enumerated().map {($1, $0)})
     }
     
-    init(contentsOf url: URL) throws {
+    public init(contentsOf url: URL) throws {
         self.words = try String(data: Data(contentsOf: url), encoding: .utf8)!
             .split(whereSeparator: {$0.isNewline})
             .map(String.init)
         self.wordToIndex = Dictionary(uniqueKeysWithValues: self.words.enumerated().map {($1, $0)})
     }
     
-    func limited(toWordCount wordCount: Int) -> Language {
+    public func limited(toWordCount wordCount: Int) -> Language {
         return Language(words: Array(words[..<wordCount]))
     }
     
-    func write(to url: URL) throws {
+    public func write(to url: URL) throws {
         try words.joined(separator: "\n")
             .data(using: .utf8)!
             .write(to: url)
     }
     
-    static func cleanup(_ string: String) -> String {
+    public static func cleanup(_ string: String) -> String {
         string
             .lowercased()
             .replacingOccurrences(of: #"([.,?!();\-_$°+/:])"#, with: " $1 ", options: .regularExpression)
@@ -93,7 +93,7 @@ struct Language {
             .replacingOccurrences(of: #"[0-9]+"#, with: "<num>", options: .regularExpression)
     }
     
-    static func pair(from path: String, maxLength: Int? = nil, replacements: ([String: String], [String: String])) throws -> (Language, Language, [(String, String)]) {
+    public static func pair(from path: String, maxLength: Int? = nil, replacements: ([String: String], [String: String])) throws -> (Language, Language, [(String, String)]) {
         print()
         print("Reading lines...")
         
@@ -135,7 +135,7 @@ struct Language {
         return (l1, l2, Array(pairs))
     }
     
-    func formattedSentence(from sequence: [Int32]) -> String {
+    public func formattedSentence(from sequence: [Int32]) -> String {
         let words = sequence.filter {$0 >= 2}.map(Int.init).compactMap {self.words[safe: $0]}
         
         var result: String = ""
@@ -153,13 +153,13 @@ struct Language {
         return result
     }
     
-    func indexSequence(from sentence: String) -> [Int32] {
+    public func indexSequence(from sentence: String) -> [Int32] {
         let words = sentence.components(separatedBy: .whitespaces).filter {!$0.isEmpty}
         let indices = words.map {wordToIndex[$0] ?? Language.unknown}.map(Int32.init)
         return [Int32(Language.startOfSentence)] + indices + [Int32(Language.endOfSentence)]
     }
     
-    func wordSequence(from indexSequence: [Int32]) -> [String] {
+    public func wordSequence(from indexSequence: [Int32]) -> [String] {
         return indexSequence.map(Int.init).compactMap {words[safe: $0]}
     }
 }

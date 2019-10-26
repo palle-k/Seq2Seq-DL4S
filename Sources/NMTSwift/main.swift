@@ -27,6 +27,7 @@ import DL4S
 import Foundation
 import Commander
 import Kitura
+import NMTModels
 
 let engReplacements = [
     "i'm": "i am",
@@ -198,10 +199,10 @@ let group = Group { g in
                     decoded = combined.callAsFunction((Tensor<Int32, CPU>(engIdxs), nil)).decoded
                 }
                 
-                combinedLoss += Helper<Float, CPU>().decodingLoss(forExpectedSequence: Array(gerIdxs.dropFirst()), actualSequence: decoded)
+                combinedLoss += Helper.decodingLoss(forExpectedSequence: Array(gerIdxs.dropFirst()), actualSequence: decoded)
                 
                 src = english.formattedSentence(from: engIdxs)
-                seq = german.formattedSentence(from: Helper<Float, CPU>().sequence(from: decoded))
+                seq = german.formattedSentence(from: Helper.sequence(from: decoded))
             }
             
             combinedLoss = combinedLoss / Tensor(Float(batchSize))
