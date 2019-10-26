@@ -157,13 +157,6 @@ struct AttentionSeq2Seq<Element: RandomizableType, Device: DeviceType>: LayerTyp
     }
     
     func translate(_ text: [Int32], from sourceLanguage: Language, to destinationLanguage: Language, beamCount: Int) -> [([Int32], Tensor<Element, Device>)] {
-//        let (decoded, attn) = callAsFunction((
-//            Tensor<Int32, Device>(text),
-//            nil
-//        ))
-//
-//        return [(Helper<Element, Device>().sequence(from: decoded), attn)]
-        
         let encoded = encoder.callAsFunction(Tensor<Int32, Device>(text))
         let initialState = transformHiddenState.callAsFunction(encoded[-1])
         let states = self.beamDecode(

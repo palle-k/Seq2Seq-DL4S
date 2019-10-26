@@ -233,11 +233,9 @@ let group = Group { g in
         Argument<String>("src_vocab", description: "Path to source vocabulary", validator: validatePathExists(isDirectory: false)),
         Argument<String>("dst_vocab", description: "Path to destination vocabulary", validator: validatePathExists(isDirectory: false)),
         Argument<String>("model_file", description: "Path to the stored weights of the model", validator: validatePathExists(isDirectory: false)),
-        Option<Int>("emb_size", default: 100, description: "Size of embedded words", validator: validatePositive(message: "Embedding dimensionality must be greater than 0.")),
-        Option<Int>("latent_size", default: 1024, flag: nil, description: "Size of latent sentence representation", validator: validatePositive(message: "Latent size must be positive")),
         Option<Int>("beam_count", default: 4, flag: nil, description: "Number of beams to use for decoding", validator: validatePositive(message: "Number of beams must be positive")),
         description: "Evaluate a trained seq2seq model."
-    ) { srcVocab, dstVocab, modelPath, embSize, latentSize, beamCount in
+    ) { srcVocab, dstVocab, modelPath, beamCount in
         print("Loading vocabulary...", terminator: "")
         fflush(stdout)
         let english = try Language(contentsOf: URL(fileURLWithPath: srcVocab))
@@ -282,12 +280,10 @@ let group = Group { g in
             Argument<String>("src_vocab", description: "Path to source vocabulary", validator: validatePathExists(isDirectory: false)),
             Argument<String>("dst_vocab", description: "Path to destination vocabulary", validator: validatePathExists(isDirectory: false)),
             Argument<String>("model_file", description: "Path to the stored weights of the model", validator: validatePathExists(isDirectory: false)),
-            Option<Int>("emb_size", default: 100, description: "Size of embedded words", validator: validatePositive(message: "Embedding dimensionality must be greater than 0.")),
-            Option<Int>("latent_size", default: 1024, flag: nil, description: "Size of latent sentence representation", validator: validatePositive(message: "Latent size must be positive")),
             Option<Int>("beam_count", default: 4, flag: nil, description: "Number of beams to use for decoding", validator: validatePositive(message: "Number of beams must be positive")),
             Option<Int>("port", default: 5000, flag: nil, description: "Number of beams to use for decoding", validator: validatePositive(message: "Port number must be positive")),
             description: "Run a translation service."
-        ) { srcVocab, dstVocab, modelPath, embSize, latentSize, beamCount, port in
+        ) { srcVocab, dstVocab, modelPath, beamCount, port in
             print("Loading vocabulary...", terminator: "")
             fflush(stdout)
             let english = try Language(contentsOf: URL(fileURLWithPath: srcVocab))
