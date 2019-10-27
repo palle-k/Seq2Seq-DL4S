@@ -102,7 +102,7 @@ enum Plot {
         plt.show()
     }
     
-    static func showAttention<Device>(_ tensor: Tensor<Float, Device>, source: [String], destination: [String]) {
+    static func showAttention<Device>(_ tensor: Tensor<Float, Device>, source: [String], destination: [String], title: String? = nil) {
         let ticker = Python.import("matplotlib.ticker")
         
         let arr = tensor
@@ -110,14 +110,15 @@ enum Plot {
             .makeNumpyArray()
             .reshape(tensor.shape)
         
-        print(source)
-        
         let fig = plt.figure()
         let ax = fig.add_subplot(111)
         let color_axis = ax.matshow(arr)
         fig.colorbar(color_axis)
         ax.set_xticklabels([""] + source, rotation: 90)
         ax.set_yticklabels([""] + destination)
+        if let title = title {
+            ax.set_title(title)
+        }
         
         ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
         ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
