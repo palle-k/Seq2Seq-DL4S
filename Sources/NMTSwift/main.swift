@@ -148,6 +148,9 @@ let group = Group { g in
         try english.write(to: URL(fileURLWithPath: "vocab_eng.txt", relativeTo: checkpointDir))
         try german.write(to: URL(fileURLWithPath: "vocab_ger.txt", relativeTo: checkpointDir))
         print(" Done.")
+
+        print("Vocabulary: source: \(english.words.count) words, destination: \(german.words.count) words")
+        print("\(examples.count) training pairs")
         
         print("Creating model...", terminator: "")
         fflush(stdout)

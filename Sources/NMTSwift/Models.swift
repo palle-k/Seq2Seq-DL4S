@@ -53,9 +53,9 @@ struct Encoder<Element: RandomizableType, Device: DeviceType>: LayerType, Codabl
         let embedded = self.embedding(inputs)
         let rnnIn = embedded.view(as: length, batchSize, -1)
         
-        let rnnOut = self.rnn(rnnIn)
+        let (_, rnnOut) = self.rnn(rnnIn)
         
-        return rnnOut.1()
+        return rnnOut()
     }
 }
 
@@ -92,9 +92,9 @@ struct BidirectionalEncoder<Element: RandomizableType, Device: DeviceType>: Laye
         let embedded = self.embedding(inputs)
         let rnnIn = embedded.view(as: length, batchSize, -1)
         
-        let (forwardOut, backwardOut) = self.rnn(rnnIn)
+        let ((_, forwardOut), (_, backwardOut)) = self.rnn(rnnIn)
         
-        return stack([forwardOut.1(), backwardOut.1()], along: 2)
+        return stack([forwardOut(), backwardOut()], along: 2)
     }
 }
 

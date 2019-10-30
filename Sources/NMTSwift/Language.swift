@@ -26,6 +26,9 @@
 import Foundation
 import DL4S
 
+func autoreleasepool<Result>(_ block: () throws -> Result) rethrows -> Result {
+    try block()
+}
 
 struct Language {
     static let startOfSentence: Int = 0

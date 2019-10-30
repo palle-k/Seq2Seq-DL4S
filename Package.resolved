@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "Signals",
+        "repositoryURL": "https://github.com/IBM-Swift/BlueSignals.git",
+        "state": {
+          "branch": null,
+          "revision": "b7331c8bef913f5f8b3cffa6ecfcce679f7c2531",
+          "version": "1.0.21"
+        }
+      },
+      {
         "package": "Socket",
         "repositoryURL": "https://github.com/IBM-Swift/BlueSocket.git",
         "state": {
@@ -42,7 +51,7 @@
         "repositoryURL": "https://github.com/palle-k/DL4S.git",
         "state": {
           "branch": "develop",
-          "revision": "9b62bbf9db4b6645b9f92a91dfc3d2add5682cdf",
+          "revision": "adf2f249cd59b938c96d8c256cb485b1c53a5571",
           "version": null
         }
       },
@@ -107,6 +116,15 @@
           "branch": "master",
           "revision": "65e80159de5e5c65cb88671721ae4832820f03d0",
           "version": null
+        }
+      },
+      {
+        "package": "OpenSSL",
+        "repositoryURL": "https://github.com/IBM-Swift/OpenSSL.git",
+        "state": {
+          "branch": null,
+          "revision": "6c7e2e3610037fbc05c0d846cec981518961d8bf",
+          "version": "2.2.2"
         }
       },
       {
