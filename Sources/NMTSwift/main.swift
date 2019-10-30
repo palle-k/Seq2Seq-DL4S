@@ -284,50 +284,141 @@ let group = Group { g in
             Option<Int>("beam_count", default: 4, flag: nil, description: "Number of beams to use for decoding", validator: validatePositive(message: "Number of beams must be positive")),
             Option<Int>("port", default: 5000, flag: nil, description: "Number of beams to use for decoding", validator: validatePositive(message: "Port number must be positive")),
             description: "Run a translation service."
-        ) { srcVocab, dstVocab, modelPath, beamCount, port in
-            print("Loading vocabulary...", terminator: "")
-            fflush(stdout)
-            let english = try Language(contentsOf: URL(fileURLWithPath: srcVocab))
-            let german = try Language(contentsOf: URL(fileURLWithPath: dstVocab))
-    //        let (english, german, pairs) = try Language.pair(from: dsPath, replacements: (engReplacements, gerReplacements))
-            print(" Done.")
-            
-            print("Loading trained model...", terminator: "")
-            fflush(stdout)
-            
-            let modelData = try Data(contentsOf: URL(fileURLWithPath: modelPath))
-            let model = try JSONDecoder().decode(AttentionSeq2Seq<Float, CPU>.self, from: modelData)
-            
-            print(" Done.")
-            
-            let router = Router()
-            router.all(middleware: BodyParser())
-            
-            router.post("/translate") { request, response, next in
-                defer { next() }
-                guard let text = request.body?.asJSON?["text"] as? String else {
-                    response
-                        .send(status: .badRequest)
-                        .send(json: ["error": "request is missing text field in body."])
-                    return
-                }
-                
-                let cleaned = engReplacements
-                    .reduce(text.lowercased(), {$0.replacingOccurrences(of: $1.key, with: $1.value)})
-                let input = Language.cleanup(cleaned)
-                let inputIdxs = english.indexSequence(from: input)
-                
-                let translations = model.translate(inputIdxs, from: english, to: german, beamCount: beamCount)
-                response.send(json: ["translations": translations.map {german.formattedSentence(from: $0.0)}])
+    ) { srcVocab, dstVocab, modelPath, beamCount, port in
+        print("Loading vocabulary...", terminator: "")
+        fflush(stdout)
+        let english = try Language(contentsOf: URL(fileURLWithPath: srcVocab))
+        let german = try Language(contentsOf: URL(fileURLWithPath: dstVocab))
+//        let (english, german, pairs) = try Language.pair(from: dsPath, replacements: (engReplacements, gerReplacements))
+        print(" Done.")
+        
+        print("Loading trained model...", terminator: "")
+        fflush(stdout)
+        
+        let modelData = try Data(contentsOf: URL(fileURLWithPath: modelPath))
+        let model = try JSONDecoder().decode(AttentionSeq2Seq<Float, CPU>.self, from: modelData)
+        
+        print(" Done.")
+        
+        let router = Router()
+        router.all(middleware: BodyParser())
+        
+        router.post("/translate") { request, response, next in
+            defer { next() }
+            guard let text = request.body?.asJSON?["text"] as? String else {
+                response
+                    .send(status: .badRequest)
+                    .send(json: ["error": "request is missing text field in body."])
+                return
             }
             
-            router.all("/", middleware: StaticFileServer(path: "./static/build/"))
-
-            Kitura.addHTTPServer(onPort: port, with: router)
-            print("Serving on http://0.0.0.0/\(port)")
+            let cleaned = engReplacements
+                .reduce(text.lowercased(), {$0.replacingOccurrences(of: $1.key, with: $1.value)})
+            let input = Language.cleanup(cleaned)
+            let inputIdxs = english.indexSequence(from: input)
             
-            Kitura.run()
+            let translations = model.translate(inputIdxs, from: english, to: german, beamCount: beamCount)
+            response.send(json: ["translations": translations.map {german.formattedSentence(from: $0.0)}])
         }
+        
+        router.all("/", middleware: StaticFileServer(path: "./static/build/"))
+
+        Kitura.addHTTPServer(onPort: port, with: router)
+        print("Serving on http://0.0.0.0/\(port)")
+        
+        Kitura.run()
+    }
+    
+    g.command(
+        "connectivity",
+        Argument<String>("src_vocab", description: "Path to source vocabulary", validator: validatePathExists(isDirectory: false)),
+        Argument<String>("dst_vocab", description: "Path to destination vocabulary", validator: validatePathExists(isDirectory: false)),
+        Argument<String>("model_file", description: "Path to the stored weights of the model", validator: validatePathExists(isDirectory: false)),
+        Flag("teacher_forcing", default: true, disabledName: "no_forcing", description: "Whether the model should use teacher forcing or scheduled sampling")
+    ) { src_vocab, dst_vocab, model_file, teacherForcing in
+        print("Loading vocabulary...", terminator: "")
+        fflush(stdout)
+        let english = try Language(contentsOf: URL(fileURLWithPath: src_vocab))
+        let german = try Language(contentsOf: URL(fileURLWithPath: dst_vocab))
+        print(" Done.")
+        
+        print("Loading trained model...", terminator: "")
+        fflush(stdout)
+        
+        let modelData = try Data(contentsOf: URL(fileURLWithPath: model_file))
+        let model = try JSONDecoder().decode(AttentionSeq2Seq<Float, CPU>.self, from: modelData)
+        
+        print(" Done.")
+        
+        while true {
+            
+            print("[in]: ", terminator: "")
+            fflush(stdout)
+            guard let text = readLine() else {
+                break
+            }
+            
+            print("[out]: ", terminator: "")
+            fflush(stdout)
+            guard let expected = readLine() else {
+                break
+            }
+            
+            let cleaned = engReplacements
+                .reduce(text.lowercased(), {$0.replacingOccurrences(of: $1.key, with: $1.value)})
+            let input = Language.cleanup(cleaned)
+            let inputIdxs = english.indexSequence(from: input)
+            let inTokens = english.wordSequence(from: inputIdxs)
+            
+            let cleanedOut = gerReplacements
+                .reduce(expected.lowercased(), {$0.replacingOccurrences(of: $1.key, with: $1.value)})
+            let expectedOut = Language.cleanup(cleanedOut)
+            let expectedOutIdxs = german.indexSequence(from: expectedOut)
+            let expectedOutTokens = german.wordSequence(from: expectedOutIdxs)
+            
+            let inputLabels = Tensor<Int32, CPU>(inputIdxs)
+            let length = inputLabels.shape[0]
+            let embedded = model.encoder.embedding(inputLabels)
+            let rnnIn = embedded.view(as: length, 1, -1)
+            let (forwardOut, backwardOut) = model.encoder.rnn(rnnIn)
+            let rnnOut = stack([forwardOut.1(), backwardOut.1()], along: 2)
+            
+            let initialDecoderState = model.transformHiddenState.callAsFunction(rnnOut[-1])
+            let decodedSequence: Tensor<Float, CPU>
+            let attentionScores: Tensor<Float, CPU>
+            let decoderEmbeddings: [Tensor<Float, CPU>]
+            
+            if teacherForcing {
+                (decodedSequence, attentionScores, decoderEmbeddings) = model.decodeSequenceWithEmbeddings(fromInitialState: initialDecoderState, encoderStates: rnnOut, forcedResult: Array(expectedOutIdxs))
+            } else {
+                (decodedSequence, attentionScores, decoderEmbeddings) = model.decodeSequenceWithEmbeddings(fromInitialState: initialDecoderState, encoderStates: rnnOut, initialToken: Int32(Language.startOfSentence), endToken: Int32(Language.endOfSentence), maxLength: inputLabels.shape[0] * 2)
+            }
+            let actualSequence = Helper.sequence(from: decodedSequence)
+            print(german.formattedSentence(from: actualSequence))
+            
+            let encoderConnectivities = (0 ..< decodedSequence.shape[0]).map { outputTime -> Tensor<Float, CPU> in
+                let token = actualSequence[outputTime]
+                let tokenScore = decodedSequence[outputTime, 0, Int(token)]
+                let encoderInputGradient = tokenScore.gradients(of: [rnnIn])[0]
+                let c = sqrt((encoderInputGradient * encoderInputGradient).reduceSum(along: 1, 2))
+                return c / c.reduceMean()
+            }
+            let encoderConnectivity = Tensor(stacking: encoderConnectivities.map {$0.unsqueezed(at: 0)})
+            
+            let decoderConnectivities = (0 ..< decodedSequence.shape[0]).map { outputTime -> Tensor<Float, CPU> in
+                let token = actualSequence[outputTime]
+                let tokenScore = decodedSequence[outputTime, 0, Int(token)]
+                let decoderGradient = Tensor(stacking: tokenScore.gradients(of: decoderEmbeddings), along: 0)
+                let c = sqrt((decoderGradient * decoderGradient).reduceSum(along: 1))
+                return c / c.reduceMean() * Tensor(Float(outputTime + 1))
+            }
+            let decoderConnectivity = Tensor(stacking: decoderConnectivities.map {$0.unsqueezed(at: 0)})
+            
+            Plot.showAttention(encoderConnectivity, source: inTokens, destination: german.wordSequence(from: actualSequence), title: "Connectivity to Encoder")
+            Plot.showAttention(decoderConnectivity, source: german.wordSequence(from: actualSequence), destination: german.wordSequence(from: actualSequence), title: "Connectivity within Decoder")
+            Plot.showAttention(attentionScores, source: inTokens, destination: german.wordSequence(from: actualSequence), title: "Attentions")
+        }
+    }
 }
 
 group.run()

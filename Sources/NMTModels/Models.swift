@@ -69,8 +69,8 @@ public struct BidirectionalEncoder<Element: RandomizableType, Device: DeviceType
         return embedding.parameters + rnn.parameters
     }
     
-    var embedding: Embedding<Element, Device>
-    var rnn: Bidirectional<GRU<Element, Device>>
+    public var embedding: Embedding<Element, Device>
+    public var rnn: Bidirectional<GRU<Element, Device>>
     
     public init(inputSize: Int, embeddingSize: Int, hiddenSize: Int, embeddingsFile: URL?, words: [String]) {
         if let embeddingsFile = embeddingsFile, let embedding = Embedding<Element, Device>(words: words, embeddingsURL: embeddingsFile, verbose: true) {
@@ -91,7 +91,6 @@ public struct BidirectionalEncoder<Element: RandomizableType, Device: DeviceType
         
         let embedded = self.embedding(inputs)
         let rnnIn = embedded.view(as: length, batchSize, -1)
-        
         let (forwardOut, backwardOut) = self.rnn(rnnIn)
         
         return stack([forwardOut.1(), backwardOut.1()], along: 2)
@@ -278,7 +277,7 @@ public struct AttentionDecoder<Element: RandomizableType, Device: DeviceType>: L
         softmax = Softmax()
     }
     
-    public func callAsFunction(_ inputs: (input: Tensor<Int32, Device>, state: Tensor<Element, Device>, encoderStates: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>)) -> (output: Tensor<Element, Device>, state: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>) {
+    public func callAsFunction(_ inputs: (input: Tensor<Int32, Device>, state: Tensor<Element, Device>, encoderStates: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>)) -> (output: Tensor<Element, Device>, state: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>, embedded: Tensor<Element, Device>) {
         // input: [(1, )?batchSize] (squeezed at a later stage, so dim not important)
         // state: [batchSize, hiddenSize]
         // encoderState: [seqlen, batchSize, hiddenSize]
@@ -294,6 +293,6 @@ public struct AttentionDecoder<Element: RandomizableType, Device: DeviceType>: L
         let deembedded = deembed(newState)
         let wordScores = softmax(deembedded)
         
-        return (output: wordScores, state: newState, attentionScores: attentionScores, attentionHistory: history)
+        return (output: wordScores, state: newState, attentionScores: attentionScores, attentionHistory: history, embedded: embedded)
     }
 }
