@@ -42,7 +42,7 @@
         "repositoryURL": "https://github.com/palle-k/DL4S.git",
         "state": {
           "branch": "develop",
-          "revision": "827378920ea770c07cb3d3c9547646f5db42f44b",
+          "revision": "adf2f249cd59b938c96d8c256cb485b1c53a5571",
           "version": null
         }
       },
@@ -97,15 +97,6 @@
         "state": {
           "branch": "master",
           "revision": "3ba9151c87d9ead08188e9e3d789b5c6b987ddad",
-          "version": null
-        }
-      },
-      {
-        "package": "MKLSwift",
-        "repositoryURL": "https://github.com/palle-k/MKLSwift.git",
-        "state": {
-          "branch": "master",
-          "revision": "65e80159de5e5c65cb88671721ae4832820f03d0",
           "version": null
         }
       },

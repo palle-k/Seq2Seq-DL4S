@@ -141,3 +141,19 @@ struct TBSummaryWriter {
         summaryWriter.add_scalar(name, value, iteration)
     }
 }
+
+extension Collection {
+    func pmap<ElementOfResult>(_ transform: (Element) -> ElementOfResult) -> [ElementOfResult] {
+        var result: [ElementOfResult?] = Array(repeating: nil, count: count)
+        
+        DispatchQueue.concurrentPerform(iterations: count) { offset in
+            let idx = self.index(self.startIndex, offsetBy: offset)
+            let element = self[idx]
+            let mapped = transform(element)
+            
+            result[offset] = mapped
+        }
+        
+        return result.compactMap {$0}
+    }
+}
