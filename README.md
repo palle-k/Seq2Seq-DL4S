@@ -2,7 +2,7 @@
 
 ![demo image](https://github.com/palle-k/Seq2Seq-DL4S/blob/master/.github/image.png?raw=true)
 
-An implementation of seq2seq for neural machine translation in Swift based on DL4S.
+An implementation of seq2seq with attention for neural machine translation in Swift based on [DL4S](https://github.com/palle-k/DL4S).
 
 Seq2seq uses two recurrent neural networks, an encoder and a decoder, which are trained in an end to end setup:
 The encoder creates a latent vector representation of the input sequence, the decoder then produces an output sequence based on this latent representation.
@@ -20,11 +20,6 @@ the capacity of the model. To overcome this, the decoder can recall past encoder
 This implementation provides tanh and general attention modules (following Luong et al.). 
 Both attention modes optionally allow temporal attention,
 where the attention module is forced to focus its attention onto different states.
-
-## Source Code Overview
-
-- The encoder and decoder are defined in Sources/NMTSwift/Models.swift and both use gated recurrent units, which are computationally more efficent compared to LSTMs.
-- The encoding and decoding process is coordinated by the Helper type defined at Sources/NMTSwift/Helpers.swift
 
 ## Usage
 
@@ -60,15 +55,17 @@ To build the translation app, navigate into the `static` folder and run `npm ins
 Then navigate back to the repository root and run the server using the following command:
 
 ```bash
-swift run -c release NMTSwift serve ./runs/vocab_eng.txt ./runs/vocab_ger.txt ./runs/model.json
+swift run -c release NMTSwift serve ./runs/vocab_eng.txt ./runs/vocab_ger.txt ./runs/model.json --beam_count 4
 ```
+
+Beam search is used to generate the most likely translations and allow for corrections in case of a word error.
 
 ### Evaluate  model
 
 Evaluation requires Python 3, numpy and matplotlib to be installed to visualize the attention distribution.
 
 ```bash
-swift run -c release NMTSwift eval ./runs/vocab_eng.txt ./runs/vocab_ger.txt ./runs/model.json
+swift run -c release NMTSwift eval ./runs/vocab_eng.txt ./runs/vocab_ger.txt ./runs/model.json --beam_count 4
 ```
 
 Running this command will start a interactive translation session.

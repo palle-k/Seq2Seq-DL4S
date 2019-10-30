@@ -27,34 +27,33 @@ import Foundation
 import DL4S
 
 
-protocol StateType: Equatable {
+public protocol StateType: Equatable {
     associatedtype Element
-    
     func appending(_ element: Element) -> Self
 }
 
 
-struct Hypothesis<State: StateType> {
-    var state: State
-    var logProbability: Double
-    var isCompleted: Bool
-    var beamLength: Int
+public struct Hypothesis<State: StateType> {
+    public var state: State
+    public var logProbability: Double
+    public var isCompleted: Bool
+    public var beamLength: Int
     
-    init(initialState: State) {
+    public init(initialState: State) {
         self.state = initialState
         self.logProbability = 0 // log(1)
         self.isCompleted = false
         self.beamLength = 0
     }
     
-    init(state: State, logProbability: Double, isCompleted: Bool, beamLength: Int) {
+    public init(state: State, logProbability: Double, isCompleted: Bool, beamLength: Int) {
         self.state = state
         self.logProbability = logProbability
         self.isCompleted = isCompleted
         self.beamLength = beamLength
     }
     
-    func extended(with element: State.Element, logProbability: Double, isCompleted: Bool) -> Hypothesis<State> {
+    public func extended(with element: State.Element, logProbability: Double, isCompleted: Bool) -> Hypothesis<State> {
         guard !self.isCompleted else {
             return self
         }
@@ -62,33 +61,33 @@ struct Hypothesis<State: StateType> {
     }
 }
 
-struct BeamSearchContext<State: StateType> {
+public struct BeamSearchContext<State: StateType> {
     private(set) var hypotheses: [Hypothesis<State>]
     private var newHypotheses: [Hypothesis<State>] = []
     
-    let maxBeamLength: Int
-    let beamCount: Int
+    public let maxBeamLength: Int
+    public let beamCount: Int
     
     /// Hypotheses, sorted by likelihood descending
-    var bestHypotheses: [Hypothesis<State>] {
+    public var bestHypotheses: [Hypothesis<State>] {
         return hypotheses
             .sorted(by: {$0.logProbability < $1.logProbability})
             .reversed()
     }
     
-    var isCompleted: Bool {
+    public var isCompleted: Bool {
         return hypotheses.allSatisfy {
             $0.isCompleted || $0.beamLength >= maxBeamLength
         }
     }
     
-    init(beamCount: Int, maxLength: Int, initialState: State) {
+    public init(beamCount: Int, maxLength: Int, initialState: State) {
         self.beamCount = beamCount
         self.maxBeamLength = maxLength
         self.hypotheses = [Hypothesis(initialState: initialState)]
     }
     
-    mutating func endIteration() {
+    public mutating func endIteration() {
         hypotheses = newHypotheses
             .sorted(by: {$0.logProbability < $1.logProbability})
             .reversed()
@@ -97,7 +96,7 @@ struct BeamSearchContext<State: StateType> {
         newHypotheses = []
     }
     
-    mutating func add(_ hypothesis: Hypothesis<State>) {
+    public mutating func add(_ hypothesis: Hypothesis<State>) {
         newHypotheses.append(hypothesis)
     }
 }

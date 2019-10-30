@@ -26,25 +26,25 @@
 import Foundation
 import DL4S
 
-struct Encoder<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
-    var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {
+public struct Encoder<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
+    public var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {
         embedding.parameterPaths.map((\Self.embedding).appending(path:)) +
         rnn.parameterPaths.map((\Self.rnn).appending(path:))
     }
 
-    var parameters: [Tensor<Element, Device>] {
+    public var parameters: [Tensor<Element, Device>] {
         return embedding.parameters + rnn.parameters
     }
     
     private var embedding: Embedding<Element, Device>
     private var rnn: GRU<Element, Device>
     
-    init(inputSize: Int, hiddenSize: Int) {
+    public init(inputSize: Int, hiddenSize: Int) {
         self.embedding = Embedding(inputFeatures: inputSize, outputSize: hiddenSize)
         self.rnn = GRU(inputSize: hiddenSize, hiddenSize: hiddenSize)
     }
     
-    func callAsFunction(_ inputs: Tensor<Int32, Device>) -> Tensor<Element, Device> {
+    public func callAsFunction(_ inputs: Tensor<Int32, Device>) -> Tensor<Element, Device> {
         precondition(inputs.count == 1)
         
         let batchSize = 1
@@ -59,20 +59,20 @@ struct Encoder<Element: RandomizableType, Device: DeviceType>: LayerType, Codabl
     }
 }
 
-struct BidirectionalEncoder<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
-    var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {
+public struct BidirectionalEncoder<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
+    public var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {
         embedding.parameterPaths.map((\Self.embedding).appending(path:)) +
         rnn.parameterPaths.map((\Self.rnn).appending(path:))
     }
 
-    var parameters: [Tensor<Element, Device>] {
+    public var parameters: [Tensor<Element, Device>] {
         return embedding.parameters + rnn.parameters
     }
     
     var embedding: Embedding<Element, Device>
     var rnn: Bidirectional<GRU<Element, Device>>
     
-    init(inputSize: Int, embeddingSize: Int, hiddenSize: Int, embeddingsFile: URL?, words: [String]) {
+    public init(inputSize: Int, embeddingSize: Int, hiddenSize: Int, embeddingsFile: URL?, words: [String]) {
         if let embeddingsFile = embeddingsFile, let embedding = Embedding<Element, Device>(words: words, embeddingsURL: embeddingsFile, verbose: true) {
             self.embedding = embedding
             print("Using pretrained embeddings.")
@@ -85,7 +85,7 @@ struct BidirectionalEncoder<Element: RandomizableType, Device: DeviceType>: Laye
         )
     }
     
-    func callAsFunction(_ inputs: Tensor<Int32, Device>) -> Tensor<Element, Device> {
+    public func callAsFunction(_ inputs: Tensor<Int32, Device>) -> Tensor<Element, Device> {
         let batchSize = 1
         let length = inputs.shape[0]
         
@@ -98,7 +98,7 @@ struct BidirectionalEncoder<Element: RandomizableType, Device: DeviceType>: Laye
     }
 }
 
-struct GeneralAttention<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
+public struct GeneralAttention<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
     var W_a: Tensor<Element, Device>
     
     let encoderHiddenSize: Int
@@ -106,13 +106,13 @@ struct GeneralAttention<Element: RandomizableType, Device: DeviceType>: LayerTyp
     
     let isTemporal: Bool
     
-    var parameters: [Tensor<Element, Device>] {
+    public var parameters: [Tensor<Element, Device>] {
         return [W_a]
     }
     
-    var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {[\Self.W_a]}
+    public var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {[\Self.W_a]}
     
-    init(encoderHiddenSize: Int, decoderHiddenSize: Int, temporal: Bool) {
+    public init(encoderHiddenSize: Int, decoderHiddenSize: Int, temporal: Bool) {
         self.encoderHiddenSize = encoderHiddenSize
         self.decoderHiddenSize = decoderHiddenSize
         self.isTemporal = temporal
@@ -123,7 +123,7 @@ struct GeneralAttention<Element: RandomizableType, Device: DeviceType>: LayerTyp
         #endif
     }
     
-    func callAsFunction(_ inputs: (Tensor<Element, Device>, Tensor<Element, Device>, Tensor<Element, Device>)) -> Tensor<Element, Device> {
+    public func callAsFunction(_ inputs: (Tensor<Element, Device>, Tensor<Element, Device>, Tensor<Element, Device>)) -> Tensor<Element, Device> {
         let encoderStateSequence = inputs.0 // [seqlen, batchSize, encHS]
         let decoderState = inputs.1 // [batchSize, decHS]
         
@@ -151,12 +151,12 @@ struct GeneralAttention<Element: RandomizableType, Device: DeviceType>: LayerTyp
     }
 }
 
-struct TanhAttention<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
-    var parameters: [Tensor<Element, Device>] {
+public struct TanhAttention<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
+    public var parameters: [Tensor<Element, Device>] {
         return [W_h, W_s, b, v]
     }
     
-    var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {[
+    public var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {[
         \Self.W_h, \Self.W_s, \Self.b, \Self.v
     ]}
     
@@ -165,13 +165,13 @@ struct TanhAttention<Element: RandomizableType, Device: DeviceType>: LayerType, 
     var b: Tensor<Element, Device>
     var v: Tensor<Element, Device>
     
-    let encoderHiddenSize: Int
-    let decoderHiddenSize: Int
-    let latentSize: Int
+    public let encoderHiddenSize: Int
+    public let decoderHiddenSize: Int
+    public let latentSize: Int
     
-    let isTemporal: Bool
+    public let isTemporal: Bool
     
-    init(encoderHiddenSize: Int, decoderHiddenSize: Int, latentSize: Int, temporal: Bool) {
+    public init(encoderHiddenSize: Int, decoderHiddenSize: Int, latentSize: Int, temporal: Bool) {
         self.encoderHiddenSize = encoderHiddenSize
         self.decoderHiddenSize = decoderHiddenSize
         self.latentSize = latentSize
@@ -183,7 +183,7 @@ struct TanhAttention<Element: RandomizableType, Device: DeviceType>: LayerType, 
         v = Tensor<Element, Device>(normalDistributedWithShape: latentSize, mean: 0, stdev: Element(1 / sqrt(Float(latentSize))), requiresGradient: true)
     }
     
-    func callAsFunction(_ inputs: (encoderStateSequence: Tensor<Element, Device>, decoderState: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>)) -> (Tensor<Element, Device>, Tensor<Element, Device>) {
+    public func callAsFunction(_ inputs: (encoderStateSequence: Tensor<Element, Device>, decoderState: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>)) -> (Tensor<Element, Device>, Tensor<Element, Device>) {
         let encoderStateSequence = inputs.0 // [seqlen, batchSize, encHS]
         let decoderState = inputs.1 // [batchSize, decHS]
         
@@ -215,15 +215,15 @@ struct TanhAttention<Element: RandomizableType, Device: DeviceType>: LayerType, 
     }
 }
 
-func normalize<Element, Device>(_ tensor: Tensor<Element, Device>, along axis: Int) -> Tensor<Element, Device> {
+public func normalize<Element, Device>(_ tensor: Tensor<Element, Device>, along axis: Int) -> Tensor<Element, Device> {
     return tensor / tensor.reduceSum(along: axis).unsqueezed(at: axis)
 }
 
-struct AttentionCombine<Element: NumericType, Device: DeviceType>: LayerType, Codable {
-    var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {[]}
-    var parameters: [Tensor<Element, Device>] {[]}
+public struct AttentionCombine<Element: NumericType, Device: DeviceType>: LayerType, Codable {
+    public var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {[]}
+    public var parameters: [Tensor<Element, Device>] {[]}
     
-    func callAsFunction(_ inputs: (Tensor<Element, Device>, Tensor<Element, Device>)) -> Tensor<Element, Device> {
+    public func callAsFunction(_ inputs: (Tensor<Element, Device>, Tensor<Element, Device>)) -> Tensor<Element, Device> {
         let scores = inputs.0 // [seqlen, batchsize]
         let weights = inputs.1 // [seqlen, batchSize, hiddenSize]
         
@@ -233,8 +233,8 @@ struct AttentionCombine<Element: NumericType, Device: DeviceType>: LayerType, Co
     }
 }
 
-struct AttentionDecoder<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
-    var parameters: [Tensor<Element, Device>] {
+public struct AttentionDecoder<Element: RandomizableType, Device: DeviceType>: LayerType, Codable {
+    public var parameters: [Tensor<Element, Device>] {
         Array([
             embed.parameters,
             attention.parameters,
@@ -245,7 +245,7 @@ struct AttentionDecoder<Element: RandomizableType, Device: DeviceType>: LayerTyp
         ].joined())
     }
     
-    var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {
+    public var parameterPaths: [WritableKeyPath<Self, Tensor<Element, Device>>] {
         Array([
             embed.parameterPaths.map((\Self.embed).appending(path:)),
             attention.parameterPaths.map((\Self.attention).appending(path:)),
@@ -263,7 +263,7 @@ struct AttentionDecoder<Element: RandomizableType, Device: DeviceType>: LayerTyp
     var deembed: Dense<Element, Device>
     var softmax: Softmax<Element, Device>
     
-    init(inputSize: Int, embeddingSize: Int, hiddenSize: Int, words: [String], embeddingsFile: URL?, useTemporalAttention: Bool) {
+    public init(inputSize: Int, embeddingSize: Int, hiddenSize: Int, words: [String], embeddingsFile: URL?, useTemporalAttention: Bool) {
         if let embeddingsFile = embeddingsFile, let embed = Embedding<Element, Device>(words: words, embeddingsURL: embeddingsFile, verbose: true) {
             self.embed = embed
             print("Using pretrained embeddings.")
@@ -278,7 +278,7 @@ struct AttentionDecoder<Element: RandomizableType, Device: DeviceType>: LayerTyp
         softmax = Softmax()
     }
     
-    func callAsFunction(_ inputs: (input: Tensor<Int32, Device>, state: Tensor<Element, Device>, encoderStates: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>)) -> (output: Tensor<Element, Device>, state: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>) {
+    public func callAsFunction(_ inputs: (input: Tensor<Int32, Device>, state: Tensor<Element, Device>, encoderStates: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>)) -> (output: Tensor<Element, Device>, state: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>) {
         // input: [(1, )?batchSize] (squeezed at a later stage, so dim not important)
         // state: [batchSize, hiddenSize]
         // encoderState: [seqlen, batchSize, hiddenSize]

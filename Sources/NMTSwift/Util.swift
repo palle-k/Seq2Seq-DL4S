@@ -2,7 +2,7 @@
 //  Util.swift
 //  NMTSwift
 //
-//  Created by Palle Klewitz on 28.04.19.
+//  Created by Palle Klewitz on 26.10.19.
 //  Copyright (c) 2019 Palle Klewitz
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -102,7 +102,7 @@ enum Plot {
         plt.show()
     }
     
-    static func showAttention<Device>(_ tensor: Tensor<Float, Device>, source: [String], destination: [String]) {
+    static func showAttention<Device>(_ tensor: Tensor<Float, Device>, source: [String], destination: [String], title: String? = nil) {
         let ticker = Python.import("matplotlib.ticker")
         
         let arr = tensor
@@ -110,14 +110,15 @@ enum Plot {
             .makeNumpyArray()
             .reshape(tensor.shape)
         
-        print(source)
-        
         let fig = plt.figure()
         let ax = fig.add_subplot(111)
         let color_axis = ax.matshow(arr)
         fig.colorbar(color_axis)
         ax.set_xticklabels([""] + source, rotation: 90)
         ax.set_yticklabels([""] + destination)
+        if let title = title {
+            ax.set_title(title)
+        }
         
         ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
         ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
@@ -141,21 +142,18 @@ struct TBSummaryWriter {
     }
 }
 
-extension Sequence {
-    func collect<Collector>(_ collect: (Self) throws -> Collector) rethrows -> Collector {
-        return try collect(self)
-    }
-}
-
-extension Sequence {
-    func top(count: Int, by comparator: (Element, Element) -> Bool) -> [Element] {
-        return sorted(by: comparator).reversed().prefix(count).collect(Array.init)
-    }
-}
-
-
 extension Collection {
-    subscript(safe index: Index) -> Element? {
-        return indices.contains(index) ? self[index] : nil
+    func pmap<ElementOfResult>(_ transform: (Element) -> ElementOfResult) -> [ElementOfResult] {
+        var result: [ElementOfResult?] = Array(repeating: nil, count: count)
+        
+        DispatchQueue.concurrentPerform(iterations: count) { offset in
+            let idx = self.index(self.startIndex, offsetBy: offset)
+            let element = self[idx]
+            let mapped = transform(element)
+            
+            result[offset] = mapped
+        }
+        
+        return result.compactMap {$0}
     }
 }

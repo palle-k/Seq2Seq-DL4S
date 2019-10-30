@@ -27,6 +27,7 @@ import DL4S
 import Foundation
 import Commander
 import Kitura
+import NMTModels
 
 let engReplacements = [
     "i'm": "i am",
@@ -180,12 +181,12 @@ let group = Group { g in
         
         for i in 1 ... epochs {
             
-            var combinedLoss = Tensor<Float, CPU>(0)
+            // var combinedLoss = Tensor<Float, CPU>(0)
             
             var src: String = ""
             var seq: String = ""
             
-            for _ in 0 ..< batchSize {
+            let losses = (0 ..< batchSize).pmap { _ -> ([Tensor<Float, CPU>], Tensor<Float, CPU>, String, String) in
                 let (eng, ger) = examples.randomElement()!
                 
                 let engIdxs = english.indexSequence(from: eng)
@@ -201,15 +202,29 @@ let group = Group { g in
                     decoded = combined.callAsFunction((Tensor<Int32, CPU>(engIdxs), nil)).decoded
                 }
                 
-                combinedLoss += Helper<Float, CPU>().decodingLoss(forExpectedSequence: Array(gerIdxs.dropFirst()), actualSequence: decoded)
+                let loss = Helper.decodingLoss(forExpectedSequence: Array(gerIdxs.dropFirst()), actualSequence: decoded)
                 
                 src = english.formattedSentence(from: engIdxs)
-                seq = german.formattedSentence(from: Helper<Float, CPU>().sequence(from: decoded))
+                seq = german.formattedSentence(from: Helper.sequence(from: decoded))
+                
+                let batchLoss = loss / Tensor(Float(batchSize))
+                let batchGrads = batchLoss.gradients(of: combined.parameters)
+                
+                return (batchGrads, batchLoss, src, seq)
+            }
+            let combinedLoss = losses.map {$0.1}.reduce(0, +)
+            
+            if let (_, _, _src, _seq) = losses.last {
+                (src, seq) = (_src, _seq)
             }
             
-            combinedLoss = combinedLoss / Tensor(Float(batchSize))
-            let grads = combinedLoss.gradients(of: combined.parameters)
-            optim.update(along: grads)
+            let combinedGrads = losses.dropFirst().map {$0.0}.reduce(losses[0].0) { acc, grads in
+                zip(acc, grads).map(+)
+            }
+            optim.update(along: combinedGrads)
+            
+//            let grads = combinedLoss.gradients(of: combined.parameters)
+//            optim.update(along: grads)
             
             // Prevents stack overflow when releasing compute graph lol
             

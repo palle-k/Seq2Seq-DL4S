@@ -8,6 +8,10 @@ let package = Package(
     platforms: [
         .macOS(.v10_15), .iOS(.v13), .tvOS(.v13)
     ],
+    products: [
+        .executable(name: "NMTSwift", targets: ["NMTSwift"]),
+        .library(name: "NMTModels", targets: ["NMTSwift"])
+    ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         .package(url: "https://github.com/palle-k/DL4S.git", .branch("develop")),
@@ -20,7 +24,11 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "NMTSwift",
-            dependencies: ["DL4S", "Commander", "PythonKit", "Kitura"]
+            dependencies: ["NMTModels", "DL4S", "Commander", "PythonKit", "Kitura"]
+        ),
+        .target(
+            name: "NMTModels",
+            dependencies: ["DL4S"]
         ),
         .testTarget(
             name: "NMTSwiftTests",

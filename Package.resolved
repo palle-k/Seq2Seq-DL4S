@@ -110,15 +110,6 @@
         }
       },
       {
-        "package": "MKLSwift",
-        "repositoryURL": "https://github.com/palle-k/MKLSwift.git",
-        "state": {
-          "branch": "master",
-          "revision": "65e80159de5e5c65cb88671721ae4832820f03d0",
-          "version": null
-        }
-      },
-      {
         "package": "OpenSSL",
         "repositoryURL": "https://github.com/IBM-Swift/OpenSSL.git",
         "state": {
