@@ -2,15 +2,6 @@
   "object": {
     "pins": [
       {
-        "package": "Signals",
-        "repositoryURL": "https://github.com/IBM-Swift/BlueSignals.git",
-        "state": {
-          "branch": null,
-          "revision": "b7331c8bef913f5f8b3cffa6ecfcce679f7c2531",
-          "version": "1.0.21"
-        }
-      },
-      {
         "package": "Socket",
         "repositoryURL": "https://github.com/IBM-Swift/BlueSocket.git",
         "state": {
@@ -107,15 +98,6 @@
           "branch": "master",
           "revision": "3ba9151c87d9ead08188e9e3d789b5c6b987ddad",
           "version": null
-        }
-      },
-      {
-        "package": "OpenSSL",
-        "repositoryURL": "https://github.com/IBM-Swift/OpenSSL.git",
-        "state": {
-          "branch": null,
-          "revision": "6c7e2e3610037fbc05c0d846cec981518961d8bf",
-          "version": "2.2.2"
         }
       },
       {
