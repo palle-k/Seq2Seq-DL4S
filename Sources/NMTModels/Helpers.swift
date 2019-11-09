@@ -30,7 +30,7 @@ import DL4S
 public struct Helper {
     public static func decodingLoss<Element: RandomizableType, Device: DeviceType>(forExpectedSequence expectedSequence: [Int32], actualSequence: Tensor<Element, Device>) -> Tensor<Element, Device> {
         let subsequence = Array(expectedSequence.prefix(actualSequence.shape[0]))
-        let loss = categoricalCrossEntropy(expected: Tensor(subsequence), actual: actualSequence.squeezed(at: 1))
+        let loss = categoricalCrossEntropy(expected: Tensor(subsequence), actual: actualSequence.squeezed(at: 1)[0 ..< subsequence.count])
         
         return loss
     }

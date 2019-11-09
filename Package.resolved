@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "Signals",
+        "repositoryURL": "https://github.com/IBM-Swift/BlueSignals.git",
+        "state": {
+          "branch": null,
+          "revision": "b7331c8bef913f5f8b3cffa6ecfcce679f7c2531",
+          "version": "1.0.21"
+        }
+      },
+      {
         "package": "Socket",
         "repositoryURL": "https://github.com/IBM-Swift/BlueSocket.git",
         "state": {
@@ -33,7 +42,7 @@
         "repositoryURL": "https://github.com/pvieito/CommandLineKit.git",
         "state": {
           "branch": "master",
-          "revision": "706b076155a41e0ef21be9060a8775f5ed381682",
+          "revision": "395a2d00b96911ec5f208bb54a7b71dead759b3b",
           "version": null
         }
       },
@@ -42,7 +51,7 @@
         "repositoryURL": "https://github.com/palle-k/DL4S.git",
         "state": {
           "branch": "develop",
-          "revision": "adf2f249cd59b938c96d8c256cb485b1c53a5571",
+          "revision": "f8e1acf1d67f96cab85acf4ac8cdbca39a49c981",
           "version": null
         }
       },
@@ -51,8 +60,8 @@
         "repositoryURL": "https://github.com/IBM-Swift/Kitura",
         "state": {
           "branch": null,
-          "revision": "728acab53615e662cac6cd5a98391a471907ed16",
-          "version": "2.9.0"
+          "revision": "bbb7462ac3d422cad4480a57ddbd33263c381a7b",
+          "version": "2.9.1"
         }
       },
       {
@@ -96,8 +105,17 @@
         "repositoryURL": "https://github.com/pvieito/LoggerKit.git",
         "state": {
           "branch": "master",
-          "revision": "3ba9151c87d9ead08188e9e3d789b5c6b987ddad",
+          "revision": "6094112dbf46e46a5462e4692f3dad0bb1ae1f00",
           "version": null
+        }
+      },
+      {
+        "package": "OpenSSL",
+        "repositoryURL": "https://github.com/IBM-Swift/OpenSSL.git",
+        "state": {
+          "branch": null,
+          "revision": "6c7e2e3610037fbc05c0d846cec981518961d8bf",
+          "version": "2.2.2"
         }
       },
       {
@@ -123,8 +141,8 @@
         "repositoryURL": "https://github.com/apple/swift-log.git",
         "state": {
           "branch": null,
-          "revision": "e8aabbe95db22e064ad42f1a4a9f8982664c70ed",
-          "version": "1.1.1"
+          "revision": "74d7b91ceebc85daf387ebb206003f78813f71aa",
+          "version": "1.2.0"
         }
       },
       {
