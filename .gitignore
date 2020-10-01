@@ -8,3 +8,4 @@ events*.csv
 deu.txt
 deu-eng.txt
 /runs/
+/logs
