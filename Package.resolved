@@ -2,21 +2,12 @@
   "object": {
     "pins": [
       {
-        "package": "Signals",
-        "repositoryURL": "https://github.com/IBM-Swift/BlueSignals.git",
-        "state": {
-          "branch": null,
-          "revision": "b7331c8bef913f5f8b3cffa6ecfcce679f7c2531",
-          "version": "1.0.21"
-        }
-      },
-      {
         "package": "Socket",
         "repositoryURL": "https://github.com/IBM-Swift/BlueSocket.git",
         "state": {
           "branch": null,
-          "revision": "f82e1401f04f62b2e8ce4670456d104466957810",
-          "version": "1.0.50"
+          "revision": "c46a3d41f5b2401d18bcb46d0101cdc5cd13e307",
+          "version": "1.0.52"
         }
       },
       {
@@ -24,8 +15,8 @@
         "repositoryURL": "https://github.com/IBM-Swift/BlueSSLService.git",
         "state": {
           "branch": null,
-          "revision": "d6616def31a12088034f0a63ed4646772eff5bce",
-          "version": "1.0.50"
+          "revision": "ab2c2aa2fe574969f391c80ee87746be431dee0e",
+          "version": "1.0.52"
         }
       },
       {
@@ -42,7 +33,7 @@
         "repositoryURL": "https://github.com/pvieito/CommandLineKit.git",
         "state": {
           "branch": "master",
-          "revision": "395a2d00b96911ec5f208bb54a7b71dead759b3b",
+          "revision": "e804cef1719bf410373a06d14d4b9d0b0c456753",
           "version": null
         }
       },
@@ -50,8 +41,17 @@
         "package": "DL4S",
         "repositoryURL": "https://github.com/palle-k/DL4S.git",
         "state": {
-          "branch": "develop",
-          "revision": "f8e1acf1d67f96cab85acf4ac8cdbca39a49c981",
+          "branch": "master",
+          "revision": "1f90f8790bc23c2cfcd4c94f27cf6ef011d78cba",
+          "version": null
+        }
+      },
+      {
+        "package": "DL4STensorboard",
+        "repositoryURL": "https://github.com/palle-k/DL4S-Tensorboard.git",
+        "state": {
+          "branch": "master",
+          "revision": "99a55f2916cfe4c658620de65ab9d2b0a289f8b1",
           "version": null
         }
       },
@@ -105,25 +105,16 @@
         "repositoryURL": "https://github.com/pvieito/LoggerKit.git",
         "state": {
           "branch": "master",
-          "revision": "6094112dbf46e46a5462e4692f3dad0bb1ae1f00",
+          "revision": "6029a7265e08b1ecb92d968b1502de96e26d95e8",
           "version": null
         }
       },
       {
-        "package": "OpenSSL",
-        "repositoryURL": "https://github.com/IBM-Swift/OpenSSL.git",
-        "state": {
-          "branch": null,
-          "revision": "6c7e2e3610037fbc05c0d846cec981518961d8bf",
-          "version": "2.2.2"
-        }
-      },
-      {
-        "package": "PythonTool",
+        "package": "PythonKit",
         "repositoryURL": "https://github.com/pvieito/PythonKit.git",
         "state": {
           "branch": "master",
-          "revision": "ed202252409b5200555079e626200b446cce936b",
+          "revision": "d54ba4bb75bc90c5562cefa5d5729283d1728e29",
           "version": null
         }
       },
@@ -143,6 +134,24 @@
           "branch": null,
           "revision": "74d7b91ceebc85daf387ebb206003f78813f71aa",
           "version": "1.2.0"
+        }
+      },
+      {
+        "package": "SwiftProtobuf",
+        "repositoryURL": "https://github.com/apple/swift-protobuf.git",
+        "state": {
+          "branch": null,
+          "revision": "0279688c9fc5a40028e1b5bb0cb56534a45a6020",
+          "version": "1.12.0"
+        }
+      },
+      {
+        "package": "SwiftGD",
+        "repositoryURL": "https://github.com/twostraws/SwiftGD",
+        "state": {
+          "branch": null,
+          "revision": "1960998971b453101e740f25bc6d9fb01e0ba225",
+          "version": "2.5.0"
         }
       },
       {

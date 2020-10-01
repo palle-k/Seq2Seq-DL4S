@@ -14,7 +14,8 @@ let package = Package(
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        .package(url: "https://github.com/palle-k/DL4S.git", .branch("develop")),
+        .package(url: "https://github.com/palle-k/DL4S.git", .branch("master")),
+        .package(url: "https://github.com/palle-k/DL4S-Tensorboard.git", .branch("master")),
         .package(url: "https://github.com/kylef/Commander.git", from: "0.8.0"),
         .package(url: "https://github.com/pvieito/PythonKit.git", .branch("master")),
         .package(url: "https://github.com/IBM-Swift/Kitura", from: "2.7.0")
@@ -28,7 +29,7 @@ let package = Package(
         ),
         .target(
             name: "NMTModels",
-            dependencies: ["DL4S"]
+            dependencies: ["DL4S", "DL4STensorboard"]
         ),
         .testTarget(
             name: "NMTSwiftTests",

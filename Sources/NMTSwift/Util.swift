@@ -128,20 +128,6 @@ enum Plot {
     }
 }
 
-struct TBSummaryWriter {
-    let summaryWriter: PythonObject
-    
-    init(runName: String) {
-        let tensorboardX = Python.import("tensorboardX")
-        let writer = tensorboardX.SummaryWriter(runName)
-        self.summaryWriter = writer
-    }
-    
-    func addScalar(name: String, value: Double, iteration: Int) {
-        summaryWriter.add_scalar(name, value, iteration)
-    }
-}
-
 extension Collection {
     func pmap<ElementOfResult>(_ transform: (Element) -> ElementOfResult) -> [ElementOfResult] {
         var result: [ElementOfResult?] = Array(repeating: nil, count: count)

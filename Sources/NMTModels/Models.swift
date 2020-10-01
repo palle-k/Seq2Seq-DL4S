@@ -72,6 +72,10 @@ public struct BidirectionalEncoder<Element: RandomizableType, Device: DeviceType
     var embedding: Embedding<Element, Device>
     var rnn: Bidirectional<GRU<Element, Device>>
     
+    public var wordEmbeddings: Tensor<Element, Device> {
+        return embedding.embeddingMatrix
+    }
+    
     public init(inputSize: Int, embeddingSize: Int, hiddenSize: Int, embeddingsFile: URL?, words: [String]) {
         if let embeddingsFile = embeddingsFile, let embedding = Embedding<Element, Device>(words: words, embeddingsURL: embeddingsFile, verbose: true) {
             self.embedding = embedding
@@ -256,6 +260,10 @@ public struct AttentionDecoder<Element: RandomizableType, Device: DeviceType>: L
         ].joined())
     }
     
+    public var embeddings: Tensor<Element, Device> {
+        return embed.embeddingMatrix
+    }
+    
     var embed: Embedding<Element, Device>
     var attention: TanhAttention<Element, Device>
     var combine: AttentionCombine<Element, Device>
@@ -276,6 +284,10 @@ public struct AttentionDecoder<Element: RandomizableType, Device: DeviceType>: L
         rnn = GRU(inputSize: hiddenSize + embeddingSize, hiddenSize: hiddenSize)
         deembed = Dense(inputSize: hiddenSize, outputSize: inputSize)
         softmax = Softmax()
+    }
+    
+    func initialState(forBatchSize batchSize: Int) -> Tensor<Element, Device> {
+        Tensor(repeating: 0, shape: [batchSize, rnn.hiddenSize])
     }
     
     public func callAsFunction(_ inputs: (input: Tensor<Int32, Device>, state: Tensor<Element, Device>, encoderStates: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>)) -> (output: Tensor<Element, Device>, state: Tensor<Element, Device>, attentionScores: Tensor<Element, Device>, attentionHistory: Tensor<Element, Device>) {

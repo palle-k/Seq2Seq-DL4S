@@ -24,6 +24,7 @@
 //  SOFTWARE.
 
 import DL4S
+import DL4STensorboard
 import Foundation
 import Commander
 import Kitura
@@ -92,16 +93,10 @@ func makeModel(embeddingSize embSize: Int, latentSize: Int, sourceWords: [String
         embeddingsFile: dstEmbeddings.map(URL.init(fileURLWithPath:)),
         useTemporalAttention: true
     )
-    let mapper = Sequential {
-        Dense<Float, CPU>(inputSize: latentSize, outputSize: latentSize)
-        Relu<Float, CPU>()
-    }
     let combined = AttentionSeq2Seq(
         encoder: encoder,
-        decoder: decoder,
-        transformHiddenState: mapper
+        decoder: decoder
     )
-    
     return combined
 }
 
@@ -176,66 +171,47 @@ let group = Group { g in
         let epochs = iterations
         
         var progressBar = DL4S.ProgressBar<String>(totalUnitCount: epochs, formatUserInfo: {$0}, label: "training")
-        let writer = try SummaryWriter(destination: URL(fileURLWithPath: logDir), runName: ISO8601DateFormatter().string(from: Date()))
         // let writer = TBSummaryWriter(runName: "runs/\(ISO8601DateFormatter().string(from: Date()))")
+        let writer = try! TensorboardWriter(
+            logDirectory: URL(fileURLWithPath: logDir),
+            runName: "\(ISO8601DateFormatter().string(from: Date()))"
+        )
         
         for i in 1 ... epochs {
             
             // var combinedLoss = Tensor<Float, CPU>(0)
             
-            var src: String = ""
-            var seq: String = ""
-            
-            let losses = (0 ..< batchSize).pmap { _ -> ([Tensor<Float, CPU>], Tensor<Float, CPU>, String, String) in
+            let losses = (0 ..< batchSize).pmap { _ -> ([Tensor<Float, CPU>], Tensor<Float, CPU>) in
                 let (eng, ger) = examples.randomElement()!
                 
                 let engIdxs = english.indexSequence(from: eng)
                 let gerIdxs = german.indexSequence(from: ger)
                 
-                let decoded: Tensor<Float, CPU>
-                
-                let teacherForcing = Float.random(in: 0 ... 1) <= teacherForcingRate
-                
-                if teacherForcing {
-                    decoded = combined.callAsFunction((Tensor<Int32, CPU>(engIdxs), Tensor<Int32, CPU>(gerIdxs))).decoded
-                } else {
-                    decoded = combined.callAsFunction((Tensor<Int32, CPU>(engIdxs), nil)).decoded
-                }
+                let decoded = optim.model((Tensor<Int32, CPU>(engIdxs), Tensor<Int32, CPU>(gerIdxs), teacherForcingRate)).decoded
                 
                 let loss = Helper.decodingLoss(forExpectedSequence: Array(gerIdxs.dropFirst()), actualSequence: decoded)
-                
-                src = english.formattedSentence(from: engIdxs)
-                seq = german.formattedSentence(from: Helper.sequence(from: decoded))
                 
                 let batchLoss = loss / Tensor(Float(batchSize))
                 let batchGrads = batchLoss.gradients(of: combined.parameters)
                 
-                return (batchGrads, batchLoss, src, seq)
+                return (batchGrads, batchLoss)
             }
             let combinedLoss = losses.map {$0.1}.reduce(0, +)
-            
-            if let (_, _, _src, _seq) = losses.last {
-                (src, seq) = (_src, _seq)
-            }
             
             let combinedGrads = losses.dropFirst().map {$0.0}.reduce(losses[0].0) { acc, grads in
                 zip(acc, grads).map(+)
             }
             optim.update(along: combinedGrads)
             
-//            let grads = combinedLoss.gradients(of: combined.parameters)
-//            optim.update(along: grads)
-            
-            // Prevents stack overflow when releasing compute graph lol
-            
-            progressBar.next(userInfo: "[loss: \(combinedLoss)] (\(src.prefix(80)) -> \(seq.prefix(80)))")
-            writer.write(combinedLoss.item, named: "loss", at: i)
-            // writer.addScalar(name: "loss", value: Double(combinedLoss.item), iteration: i)
-            
+            progressBar.next(userInfo: "[loss: \(combinedLoss)]")
+            try? writer.write(scalar: combinedLoss.item, withTag: "loss", atStep: i)
+
             if checkpointFrequency > 0 && i.isMultiple(of: checkpointFrequency) && i != epochs {
                 try JSONEncoder()
                     .encode(combined)
                     .write(to: URL(fileURLWithPath: "model_\(i).json", relativeTo: checkpointDir))
+                
+                try? writer.write(embedding: optim.model.encoder.wordEmbeddings, withLabels: english.words, atStep: i)
             }
         }
         progressBar.complete()
